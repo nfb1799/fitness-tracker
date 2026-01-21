@@ -80,3 +80,49 @@
   height: 100%;
   min-height: 300px;
 }
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .header-title {
+    font-size: 1.5rem;
+  }
+
+  .nav {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .nav-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    flex: 1;
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .main-content h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .nav {
+    gap: 0.25rem;
+  }
+
+  .nav-btn {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}

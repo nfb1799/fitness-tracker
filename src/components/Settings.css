@@ -319,21 +319,74 @@
     padding: 1rem;
   }
 
+  .settings-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .settings-section {
+    padding: 1rem;
+  }
+
+  .section-title {
+    font-size: 1rem;
+  }
+
   .settings-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+  }
+
+  .form-group input {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.9rem;
+  }
+
+  .theme-toggle {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .theme-btn {
+    padding: 0.625rem 1rem;
+    font-size: 0.85rem;
   }
 
   .data-actions {
     grid-template-columns: 1fr;
   }
 
+  .action-btn {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.85rem;
+  }
+
   .danger-action {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.875rem;
+  }
+
+  .danger-title {
+    font-size: 0.9rem;
+  }
+
+  .danger-description {
+    font-size: 0.75rem;
   }
 
   .danger-btn {
     width: 100%;
+    padding: 0.625rem 1rem;
+  }
+
+  .save-btn {
+    padding: 0.75rem;
+    font-size: 0.9rem;
   }
 }

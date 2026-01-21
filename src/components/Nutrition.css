@@ -334,6 +334,15 @@
     padding: 1rem;
   }
 
+  .nutrition-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .daily-summary {
+    padding: 1rem;
+  }
+
   .goals-section {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -341,13 +350,57 @@
 
   .summary-stats {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+  }
+
+  .nutrition-form {
+    padding: 1rem;
   }
 
   .form-row {
     grid-template-columns: 1fr;
   }
 
-  .stat-value {
-    font-size: 1.5rem;
+  .form-group label {
+    font-size: 0.85rem;
+  }
+
+  .form-group input {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.9rem;
+  }
+
+  .add-btn {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .list-title {
+    font-size: 1.1rem;
+  }
+
+  .meal-card {
+    padding: 1rem;
+  }
+
+  .meal-name {
+    font-size: 1rem;
+  }
+
+  .meal-macros {
+    gap: 0.5rem;
+  }
+
+  .macro {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
   }
 }
