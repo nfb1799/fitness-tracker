@@ -113,6 +113,7 @@
 }
 
 .setting-item input {
+  width: 100%;
   padding: 0.75rem 1rem;
   border: 1px solid var(--border-hover);
   border-radius: 8px;
@@ -120,6 +121,7 @@
   color: var(--text-primary);
   font-size: 1rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+  box-sizing: border-box;
 }
 
 .setting-item input:focus {
