@@ -1,0 +1,339 @@
+.settings-page {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.settings-title {
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* Save Message */
+.save-message {
+  background-color: #4ade80;
+  color: #000000;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Settings Sections */
+.settings-section {
+  background-color: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 1.5rem;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Theme Toggle */
+.theme-toggle-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.theme-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.theme-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background-color: var(--bg-tertiary);
+  padding: 0.25rem;
+  border-radius: 8px;
+}
+
+.theme-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.theme-btn:hover {
+  color: var(--text-primary);
+}
+
+.theme-btn.active {
+  background-color: var(--accent-primary);
+  color: #ffffff;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin: 0 0 1.25rem 0;
+  font-weight: 600;
+}
+
+/* Settings Grid */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.setting-item label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.setting-item input {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-hover);
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+}
+
+.setting-item input:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.2);
+}
+
+.setting-item input::placeholder {
+  color: var(--text-dimmed);
+}
+
+/* Input with Unit */
+.input-with-unit {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input-with-unit input {
+  flex: 1;
+  min-width: 0;
+}
+
+.input-with-unit select {
+  padding: 0.75rem;
+  border: 1px solid var(--border-hover);
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.3s ease;
+}
+
+.input-with-unit select:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+.unit-label {
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-hover);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Save Button */
+.save-btn {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #646cff, #535bf2);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(100, 108, 255, 0.4);
+}
+
+.save-btn:active {
+  transform: translateY(0);
+}
+
+/* Data Management */
+.data-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.data-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+}
+
+.action-description {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+  flex: 1;
+}
+
+.action-btn {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-hover);
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background-color: var(--bg-hover);
+  border-color: #646cff;
+}
+
+.action-btn.export:hover {
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+.action-btn.import:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+/* Danger Zone */
+.danger-zone {
+  border-color: var(--danger-border);
+}
+
+.danger-zone .section-title {
+  color: var(--danger-color);
+}
+
+.danger-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.danger-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--danger-bg);
+  border-radius: 8px;
+  border: 1px solid var(--danger-border);
+}
+
+.danger-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.danger-title {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.danger-description {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.danger-btn {
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  border: 1px solid #ff6b6b;
+  border-radius: 6px;
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.danger-btn:hover {
+  background-color: #ff6b6b;
+  color: #000000;
+}
+
+.danger-btn-all {
+  border-color: #ff4444;
+  color: #ff4444;
+}
+
+.danger-btn-all:hover {
+  background-color: #ff4444;
+  color: #000000;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .settings-page {
+    padding: 1rem;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .data-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .danger-action {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .danger-btn {
+    width: 100%;
+  }
+}

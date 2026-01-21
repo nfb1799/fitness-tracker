@@ -1,0 +1,101 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Dark theme (default) */
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #2a2a2a;
+  --bg-hover: #333;
+  --border-color: #333;
+  --border-hover: #444;
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --text-muted: #888;
+  --text-dimmed: #666;
+  --accent-color: #646cff;
+  --accent-primary: #646cff;
+  --accent-hover: #535bf2;
+  --header-bg: #1a1a1a;
+  
+  /* Status colors */
+  --success-color: #4ade80;
+  --danger-color: #ff6b6b;
+  --danger-bg: #2a2222;
+  --danger-border: #442222;
+  
+  /* Macro colors */
+  --calories-color: #f97316;
+  --protein-color: #3b82f6;
+  --carbs-color: #22c55e;
+  --fat-color: #eab308;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e8e8e8;
+  --bg-hover: #e0e0e0;
+  --border-color: #ddd;
+  --border-hover: #ccc;
+  --text-primary: #1a1a1a;
+  --text-secondary: #333;
+  --text-muted: #666;
+  --text-dimmed: #888;
+  --accent-color: #646cff;
+  --accent-primary: #646cff;
+  --accent-hover: #535bf2;
+  --header-bg: #ffffff;
+  
+  /* Status colors */
+  --success-color: #22c55e;
+  --danger-color: #ef4444;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  
+  /* Macro colors */
+  --calories-color: #ea580c;
+  --protein-color: #2563eb;
+  --carbs-color: #16a34a;
+  --fat-color: #ca8a04;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--text-secondary);
+  background-color: var(--bg-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+button {
+  font-family: inherit;
+}
