@@ -6,6 +6,7 @@ function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [exercises, setExercises] = useState([])
   const [meals, setMeals] = useState([])
+  const [activityDays, setActivityDays] = useState(7)
   const [settings, setSettings] = useState({
     calorieGoal: 2000,
     proteinGoal: 150,
@@ -147,12 +148,12 @@ function Dashboard() {
     return streak
   }
 
-  // Last 30 days activity for chart
-  const getLast30DaysActivity = () => {
+  // Last N days activity for chart
+  const getActivityData = (numDays) => {
     const days = []
     const today = new Date()
     
-    for (let i = 29; i >= 0; i--) {
+    for (let i = numDays - 1; i >= 0; i--) {
       const date = new Date(today)
       date.setDate(date.getDate() - i)
       const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate())
@@ -210,8 +211,8 @@ function Dashboard() {
   const weeklyStats = getWeeklyStats()
   const personalRecords = getPersonalRecords()
   const streak = getStreak()
-  const last30Days = getLast30DaysActivity()
-  const maxCalories = Math.max(...last30Days.map(d => d.calories), 1)
+  const activityData = getActivityData(activityDays)
+  const maxCalories = Math.max(...activityData.map(d => d.calories), 1)
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -306,10 +307,26 @@ function Dashboard() {
 
       {/* Activity Chart */}
       <div className="activity-section">
-        <h3 className="section-title">30-Day Activity</h3>
+        <div className="activity-header">
+          <h3 className="section-title">Activity</h3>
+          <div className="activity-toggle">
+            <button 
+              className={`toggle-btn ${activityDays === 7 ? 'active' : ''}`}
+              onClick={() => setActivityDays(7)}
+            >
+              7 Days
+            </button>
+            <button 
+              className={`toggle-btn ${activityDays === 30 ? 'active' : ''}`}
+              onClick={() => setActivityDays(30)}
+            >
+              30 Days
+            </button>
+          </div>
+        </div>
         <div className="activity-chart">
           <div className="chart-bars">
-            {last30Days.map((day, i) => (
+            {activityData.map((day, i) => (
               <div key={i} className="chart-bar-container">
                 <div 
                   className={`chart-bar ${day.hasWorkout ? 'has-workout' : ''}`}
@@ -320,7 +337,7 @@ function Dashboard() {
             ))}
           </div>
           <div className="chart-labels">
-            <span>30 days ago</span>
+            <span>{activityDays} days ago</span>
             <span>Today</span>
           </div>
         </div>
