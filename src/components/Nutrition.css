@@ -1,0 +1,353 @@
+.nutrition-page {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.nutrition-title {
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* Daily Summary */
+.daily-summary {
+  background-color: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 2rem;
+}
+
+.summary-title {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Goals Section */
+.goals-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.goal-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.goal-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.goal-values {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.goal-current {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.goal-current.calories {
+  color: var(--calories-color);
+}
+
+.goal-current.protein {
+  color: var(--protein-color);
+}
+
+.goal-separator {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.goal-target {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.goal-progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.goal-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.goal-progress-fill.calories {
+  background: linear-gradient(90deg, #f97316, #ea580c);
+}
+
+.goal-progress-fill.protein {
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.goal-remaining {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.stat-value.calories {
+  color: var(--calories-color);
+}
+
+.stat-value.protein {
+  color: var(--protein-color);
+}
+
+.stat-value.carbs {
+  color: var(--carbs-color);
+}
+
+.stat-value.fat {
+  color: var(--fat-color);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.25rem;
+}
+
+/* Form Styles */
+.nutrition-form {
+  background-color: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.2);
+}
+
+.form-group input::placeholder {
+  color: var(--text-muted);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.add-btn {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #646cff, #535bf2);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(100, 108, 255, 0.4);
+}
+
+.add-btn:active {
+  transform: translateY(0);
+}
+
+/* Meals List */
+.meals-list {
+  margin-top: 2rem;
+}
+
+.list-title {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.empty-message {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 2rem;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px dashed var(--border-color);
+}
+
+.meals-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.meal-card {
+  background-color: var(--bg-secondary);
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  transition: border-color 0.2s ease;
+}
+
+.meal-card:hover {
+  border-color: var(--accent-color);
+}
+
+.meal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.meal-name {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin: 0;
+  font-weight: 600;
+}
+
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.delete-btn:hover {
+  color: var(--danger-color);
+}
+
+.meal-macros {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.macro {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background-color: var(--bg-tertiary);
+}
+
+.macro.calories {
+  color: var(--calories-color);
+}
+
+.macro.protein {
+  color: var(--protein-color);
+}
+
+.macro.carbs {
+  color: var(--carbs-color);
+}
+
+.macro.fat {
+  color: var(--fat-color);
+}
+
+.meal-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .nutrition-page {
+    padding: 1rem;
+  }
+
+  .goals-section {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .summary-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+}
