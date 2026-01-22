@@ -4,7 +4,9 @@ import Workouts from './components/Workouts'
 import Dashboard from './components/Dashboard'
 import Nutrition from './components/Nutrition'
 import Settings from './components/Settings'
+import Social from './components/Social'
 import Auth from './components/Auth'
+import OfflineIndicator from './components/OfflineIndicator'
 import { useAuth } from './contexts/AuthContext'
 
 function App() {
@@ -40,6 +42,8 @@ function App() {
         return <Workouts />
       case 'nutrition':
         return <Nutrition />
+      case 'social':
+        return <Social />
       case 'settings':
         return <Settings />
       default:
@@ -85,6 +89,12 @@ function App() {
             Nutrition
           </button>
           <button 
+            className={`nav-btn ${currentPage === 'social' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('social')}
+          >
+            Social
+          </button>
+          <button 
             className={`nav-btn ${currentPage === 'settings' ? 'active' : ''}`}
             onClick={() => setCurrentPage('settings')}
           >
@@ -102,6 +112,8 @@ function App() {
       <main className="main-content">
         {renderPage()}
       </main>
+
+      <OfflineIndicator />
     </div>
   )
 }
