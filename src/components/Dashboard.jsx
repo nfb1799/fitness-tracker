@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react'
 import './Dashboard.css'
+import { useAuth } from '../contexts/AuthContext'
+import { getWorkouts, getNutrition, getUserSettings } from '../firebase/firestoreService'
 
 function Dashboard() {
+  const { currentUser } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [exercises, setExercises] = useState([])
   const [meals, setMeals] = useState([])
+  const [loading, setLoading] = useState(true)
   const [activityDays, setActivityDays] = useState(7)
   const [settings, setSettings] = useState({
     calorieGoal: 2000,
@@ -14,19 +18,27 @@ function Dashboard() {
   })
 
   useEffect(() => {
-    const savedWorkouts = localStorage.getItem('workouts')
-    const savedNutrition = localStorage.getItem('nutrition')
-    const savedSettings = localStorage.getItem('fitnessSettings')
-    if (savedWorkouts) {
-      setExercises(JSON.parse(savedWorkouts))
+    const loadData = async () => {
+      if (currentUser) {
+        try {
+          const [workoutsData, nutritionData, userSettings] = await Promise.all([
+            getWorkouts(currentUser.uid),
+            getNutrition(currentUser.uid),
+            getUserSettings(currentUser.uid)
+          ])
+          setExercises(workoutsData)
+          setMeals(nutritionData)
+          if (userSettings) {
+            setSettings(prev => ({ ...prev, ...userSettings }))
+          }
+        } catch (error) {
+          console.error('Error loading dashboard data:', error)
+        }
+      }
+      setLoading(false)
     }
-    if (savedNutrition) {
-      setMeals(JSON.parse(savedNutrition))
-    }
-    if (savedSettings) {
-      setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }))
-    }
-  }, [])
+    loadData()
+  }, [currentUser])
 
   // Date utilities
   const getDaysInMonth = (date) => {
@@ -256,6 +268,10 @@ function Dashboard() {
     }),
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   )
+
+  if (loading) {
+    return <div className="dashboard-page"><p>Loading...</p></div>
+  }
 
   return (
     <div className="dashboard-page">
