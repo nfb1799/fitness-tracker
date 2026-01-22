@@ -4,51 +4,32 @@ import Workouts from './components/Workouts'
 import Dashboard from './components/Dashboard'
 import Nutrition from './components/Nutrition'
 import Settings from './components/Settings'
+import Auth from './components/Auth'
+import { useAuth } from './contexts/AuthContext'
 
 function App() {
+  const { currentUser, logout, userProfile } = useAuth()
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('fitnessSettings')
-    if (saved) {
-      const settings = JSON.parse(saved)
-      return settings.theme || 'dark'
-    }
-    return 'dark'
+    const saved = localStorage.getItem('theme')
+    return saved || 'light'
   })
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('theme', theme)
   }, [theme])
 
   // Listen for theme changes from Settings
   useEffect(() => {
-    const handleStorageChange = () => {
-      const saved = localStorage.getItem('fitnessSettings')
-      if (saved) {
-        const settings = JSON.parse(saved)
-        if (settings.theme && settings.theme !== theme) {
-          setTheme(settings.theme)
-        }
+    const handleStorageChange = (e) => {
+      if (e.key === 'theme' && e.newValue && e.newValue !== theme) {
+        setTheme(e.newValue)
       }
     }
 
     window.addEventListener('storage', handleStorageChange)
-    
-    // Also check periodically for same-tab updates
-    const interval = setInterval(() => {
-      const saved = localStorage.getItem('fitnessSettings')
-      if (saved) {
-        const settings = JSON.parse(saved)
-        if (settings.theme && settings.theme !== theme) {
-          setTheme(settings.theme)
-        }
-      }
-    }, 100)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      clearInterval(interval)
-    }
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [theme])
 
   const renderPage = () => {
@@ -64,6 +45,20 @@ function App() {
       default:
         return <Dashboard />
     }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      setCurrentPage('dashboard')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
+  // Show auth screen if not logged in
+  if (!currentUser) {
+    return <Auth />
   }
 
   return (
@@ -96,6 +91,12 @@ function App() {
             Settings
           </button>
         </nav>
+        <div className="user-menu">
+          <span className="user-name">{currentUser.displayName || currentUser.email}</span>
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
       </header>
 
       <main className="main-content">

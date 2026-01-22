@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import './Nutrition.css'
+import { useAuth } from '../contexts/AuthContext'
+import { getNutrition, addNutritionEntry, deleteNutritionEntry, getUserSettings } from '../firebase/firestoreService'
 
 function Nutrition() {
-  const [meals, setMeals] = useState(() => {
-    const saved = localStorage.getItem('nutrition')
-    return saved ? JSON.parse(saved) : []
-  })
+  const { currentUser } = useAuth()
+  const [meals, setMeals] = useState([])
+  const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState({
     calorieGoal: 2000,
     proteinGoal: 150
@@ -17,17 +18,27 @@ function Nutrition() {
   const [fat, setFat] = useState('')
 
   useEffect(() => {
-    localStorage.setItem('nutrition', JSON.stringify(meals))
-  }, [meals])
-
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('fitnessSettings')
-    if (savedSettings) {
-      setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }))
+    const loadData = async () => {
+      if (currentUser) {
+        try {
+          const [nutritionData, userSettings] = await Promise.all([
+            getNutrition(currentUser.uid),
+            getUserSettings(currentUser.uid)
+          ])
+          setMeals(nutritionData)
+          if (userSettings) {
+            setSettings(prev => ({ ...prev, ...userSettings }))
+          }
+        } catch (error) {
+          console.error('Error loading nutrition data:', error)
+        }
+      }
+      setLoading(false)
     }
-  }, [])
+    loadData()
+  }, [currentUser])
 
-  const handleAddMeal = (e) => {
+  const handleAddMeal = async (e) => {
     e.preventDefault()
     
     if (!foodName.trim() || !calories) {
@@ -35,26 +46,39 @@ function Nutrition() {
     }
 
     const newMeal = {
-      id: Date.now(),
       name: foodName.trim(),
       calories: parseInt(calories) || 0,
       protein: parseInt(protein) || 0,
       carbs: parseInt(carbs) || 0,
       fat: parseInt(fat) || 0,
       date: new Date().toISOString().split('T')[0],
-      timestamp: new Date().toLocaleString()
+      localTimestamp: new Date().toLocaleString()
     }
 
-    setMeals([newMeal, ...meals])
-    setFoodName('')
-    setCalories('')
-    setProtein('')
-    setCarbs('')
-    setFat('')
+    try {
+      const id = await addNutritionEntry(currentUser.uid, newMeal)
+      setMeals([{ id, ...newMeal, timestamp: { toDate: () => new Date() } }, ...meals])
+      setFoodName('')
+      setCalories('')
+      setProtein('')
+      setCarbs('')
+      setFat('')
+    } catch (error) {
+      console.error('Error adding meal:', error)
+    }
   }
 
-  const handleDeleteMeal = (id) => {
-    setMeals(meals.filter(meal => meal.id !== id))
+  const handleDeleteMeal = async (id) => {
+    try {
+      await deleteNutritionEntry(currentUser.uid, id)
+      setMeals(meals.filter(meal => meal.id !== id))
+    } catch (error) {
+      console.error('Error deleting meal:', error)
+    }
+  }
+
+  if (loading) {
+    return <div className="nutrition-page"><p>Loading...</p></div>
   }
 
   const today = new Date().toISOString().split('T')[0]
@@ -234,7 +258,7 @@ function Nutrition() {
                   <span className="macro carbs">{meal.carbs}g C</span>
                   <span className="macro fat">{meal.fat}g F</span>
                 </div>
-                <span className="meal-time">{meal.timestamp}</span>
+                <span className="meal-time">{meal.localTimestamp || (meal.timestamp?.toDate ? meal.timestamp.toDate().toLocaleString() : '')}</span>
               </div>
             ))}
           </div>

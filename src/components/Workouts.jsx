@@ -1,20 +1,32 @@
 import { useState, useEffect } from 'react'
 import './Workouts.css'
+import { useAuth } from '../contexts/AuthContext'
+import { getWorkouts, addWorkout, deleteWorkout } from '../firebase/firestoreService'
 
 function Workouts() {
-  const [exercises, setExercises] = useState(() => {
-    const saved = localStorage.getItem('workouts')
-    return saved ? JSON.parse(saved) : []
-  })
+  const { currentUser } = useAuth()
+  const [exercises, setExercises] = useState([])
+  const [loading, setLoading] = useState(true)
   const [exerciseName, setExerciseName] = useState('')
   const [reps, setReps] = useState('')
   const [resistance, setResistance] = useState('')
 
   useEffect(() => {
-    localStorage.setItem('workouts', JSON.stringify(exercises))
-  }, [exercises])
+    const loadWorkouts = async () => {
+      if (currentUser) {
+        try {
+          const workouts = await getWorkouts(currentUser.uid)
+          setExercises(workouts)
+        } catch (error) {
+          console.error('Error loading workouts:', error)
+        }
+      }
+      setLoading(false)
+    }
+    loadWorkouts()
+  }, [currentUser])
 
-  const handleAddExercise = (e) => {
+  const handleAddExercise = async (e) => {
     e.preventDefault()
     
     if (!exerciseName.trim() || !reps || !resistance) {
@@ -22,22 +34,35 @@ function Workouts() {
     }
 
     const newExercise = {
-      id: Date.now(),
       name: exerciseName.trim(),
       reps: parseInt(reps),
       resistance: parseFloat(resistance),
       date: new Date().toISOString().split('T')[0],
-      timestamp: new Date().toLocaleString()
+      localTimestamp: new Date().toLocaleString()
     }
 
-    setExercises([newExercise, ...exercises])
-    setExerciseName('')
-    setReps('')
-    setResistance('')
+    try {
+      const id = await addWorkout(currentUser.uid, newExercise)
+      setExercises([{ id, ...newExercise, timestamp: { toDate: () => new Date() } }, ...exercises])
+      setExerciseName('')
+      setReps('')
+      setResistance('')
+    } catch (error) {
+      console.error('Error adding workout:', error)
+    }
   }
 
-  const handleDeleteExercise = (id) => {
-    setExercises(exercises.filter(exercise => exercise.id !== id))
+  const handleDeleteExercise = async (id) => {
+    try {
+      await deleteWorkout(currentUser.uid, id)
+      setExercises(exercises.filter(exercise => exercise.id !== id))
+    } catch (error) {
+      console.error('Error deleting workout:', error)
+    }
+  }
+
+  if (loading) {
+    return <div className="workouts-page"><p>Loading...</p></div>
   }
 
   return (
@@ -121,7 +146,7 @@ function Workouts() {
                     <span className="detail-value">{exercise.resistance} lbs</span>
                   </div>
                 </div>
-                <span className="exercise-time">{exercise.timestamp}</span>
+                <span className="exercise-time">{exercise.localTimestamp || (exercise.timestamp?.toDate ? exercise.timestamp.toDate().toLocaleString() : '')}</span>
               </div>
               ))}
             </div>

@@ -1,125 +1,191 @@
 import { useState, useEffect } from 'react'
 import './Settings.css'
+import { useAuth } from '../contexts/AuthContext'
+import { getUserSettings, updateUserSettings, exportUserData, importUserData, getWorkouts, getNutrition } from '../firebase/firestoreService'
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
+import { db } from '../firebase/config'
 
 function Settings() {
-  const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('fitnessSettings')
-    return saved ? JSON.parse(saved) : {
-      name: '',
-      weight: '',
-      height: '',
-      calorieGoal: 2000,
-      proteinGoal: 150,
-      workoutDaysGoal: 4,
-      weightUnit: 'lbs',
-      heightUnit: 'in',
-      theme: 'dark'
-    }
+  const { currentUser, updateUserProfile } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [settings, setSettings] = useState({
+    name: '',
+    weight: '',
+    height: '',
+    calorieGoal: 2000,
+    proteinGoal: 150,
+    workoutDaysGoal: 4,
+    weightUnit: 'lbs',
+    heightUnit: 'in',
+    theme: localStorage.getItem('theme') || 'light'
   })
 
   const [saveMessage, setSaveMessage] = useState('')
 
   useEffect(() => {
-    localStorage.setItem('fitnessSettings', JSON.stringify(settings))
-  }, [settings])
+    const loadSettings = async () => {
+      if (currentUser) {
+        try {
+          const userSettings = await getUserSettings(currentUser.uid)
+          if (userSettings) {
+            // Preserve the current theme from localStorage instead of overwriting
+            const currentTheme = localStorage.getItem('theme') || 'light'
+            setSettings(prev => ({ ...prev, ...userSettings, theme: currentTheme }))
+          }
+        } catch (error) {
+          console.error('Error loading settings:', error)
+        }
+      }
+      setLoading(false)
+    }
+    loadSettings()
+  }, [currentUser])
 
   const handleChange = (field, value) => {
     setSettings(prev => ({ ...prev, [field]: value }))
+    // Immediately save theme to localStorage for instant feedback
+    if (field === 'theme') {
+      localStorage.setItem('theme', value)
+      document.documentElement.setAttribute('data-theme', value)
+    }
   }
 
-  const handleSave = () => {
-    setSaveMessage('Settings saved!')
-    setTimeout(() => setSaveMessage(''), 2000)
+  const handleSave = async () => {
+    try {
+      await updateUserSettings(currentUser.uid, settings)
+      await updateUserProfile({ settings })
+      setSaveMessage('Settings saved!')
+      setTimeout(() => setSaveMessage(''), 2000)
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      setSaveMessage('Error saving settings')
+      setTimeout(() => setSaveMessage(''), 2000)
+    }
   }
 
-  const handleClearWorkouts = () => {
+  const handleClearWorkouts = async () => {
     if (window.confirm('Are you sure you want to clear all workout data? This cannot be undone.')) {
-      localStorage.removeItem('workouts')
-      setSaveMessage('Workout data cleared!')
-      setTimeout(() => setSaveMessage(''), 2000)
+      try {
+        const workoutsRef = collection(db, 'users', currentUser.uid, 'workouts')
+        const snapshot = await getDocs(workoutsRef)
+        const deletePromises = snapshot.docs.map(docSnap => deleteDoc(doc(db, 'users', currentUser.uid, 'workouts', docSnap.id)))
+        await Promise.all(deletePromises)
+        setSaveMessage('Workout data cleared!')
+        setTimeout(() => setSaveMessage(''), 2000)
+      } catch (error) {
+        console.error('Error clearing workouts:', error)
+        setSaveMessage('Error clearing data')
+        setTimeout(() => setSaveMessage(''), 2000)
+      }
     }
   }
 
-  const handleClearNutrition = () => {
+  const handleClearNutrition = async () => {
     if (window.confirm('Are you sure you want to clear all nutrition data? This cannot be undone.')) {
-      localStorage.removeItem('nutrition')
-      setSaveMessage('Nutrition data cleared!')
-      setTimeout(() => setSaveMessage(''), 2000)
+      try {
+        const nutritionRef = collection(db, 'users', currentUser.uid, 'nutrition')
+        const snapshot = await getDocs(nutritionRef)
+        const deletePromises = snapshot.docs.map(docSnap => deleteDoc(doc(db, 'users', currentUser.uid, 'nutrition', docSnap.id)))
+        await Promise.all(deletePromises)
+        setSaveMessage('Nutrition data cleared!')
+        setTimeout(() => setSaveMessage(''), 2000)
+      } catch (error) {
+        console.error('Error clearing nutrition:', error)
+        setSaveMessage('Error clearing data')
+        setTimeout(() => setSaveMessage(''), 2000)
+      }
     }
   }
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (window.confirm('Are you sure you want to clear ALL data? This includes workouts, nutrition, and settings. This cannot be undone.')) {
-      localStorage.removeItem('workouts')
-      localStorage.removeItem('nutrition')
-      localStorage.removeItem('fitnessSettings')
-      setSettings({
-        name: '',
-        weight: '',
-        height: '',
-        calorieGoal: 2000,
-        proteinGoal: 150,
-        workoutDaysGoal: 4,
-        weightUnit: 'lbs',
-        heightUnit: 'in',
-        theme: 'dark'
-      })
-      setSaveMessage('All data cleared!')
+      try {
+        // Clear workouts
+        const workoutsRef = collection(db, 'users', currentUser.uid, 'workouts')
+        const workoutsSnapshot = await getDocs(workoutsRef)
+        await Promise.all(workoutsSnapshot.docs.map(docSnap => deleteDoc(doc(db, 'users', currentUser.uid, 'workouts', docSnap.id))))
+        
+        // Clear nutrition
+        const nutritionRef = collection(db, 'users', currentUser.uid, 'nutrition')
+        const nutritionSnapshot = await getDocs(nutritionRef)
+        await Promise.all(nutritionSnapshot.docs.map(docSnap => deleteDoc(doc(db, 'users', currentUser.uid, 'nutrition', docSnap.id))))
+        
+        // Reset settings
+        const defaultSettings = {
+          name: '',
+          weight: '',
+          height: '',
+          calorieGoal: 2000,
+          proteinGoal: 150,
+          workoutDaysGoal: 4,
+          weightUnit: 'lbs',
+          heightUnit: 'in',
+          theme: 'dark'
+        }
+        await updateUserSettings(currentUser.uid, defaultSettings)
+        setSettings(defaultSettings)
+        
+        setSaveMessage('All data cleared!')
+        setTimeout(() => setSaveMessage(''), 2000)
+      } catch (error) {
+        console.error('Error clearing all data:', error)
+        setSaveMessage('Error clearing data')
+        setTimeout(() => setSaveMessage(''), 2000)
+      }
+    }
+  }
+
+  const handleExportData = async () => {
+    try {
+      const data = await exportUserData(currentUser.uid)
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `fitness-tracker-backup-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      setSaveMessage('Data exported!')
+      setTimeout(() => setSaveMessage(''), 2000)
+    } catch (error) {
+      console.error('Error exporting data:', error)
+      setSaveMessage('Error exporting data')
       setTimeout(() => setSaveMessage(''), 2000)
     }
   }
 
-  const handleExportData = () => {
-    const data = {
-      settings: settings,
-      workouts: JSON.parse(localStorage.getItem('workouts') || '[]'),
-      nutrition: JSON.parse(localStorage.getItem('nutrition') || '[]'),
-      exportDate: new Date().toISOString()
-    }
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `fitness-tracker-backup-${new Date().toISOString().split('T')[0]}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    
-    setSaveMessage('Data exported!')
-    setTimeout(() => setSaveMessage(''), 2000)
-  }
-
-  const handleImportData = (e) => {
+  const handleImportData = async (e) => {
     const file = e.target.files[0]
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target.result)
+        await importUserData(currentUser.uid, data)
         
         if (data.settings) {
-          setSettings(data.settings)
-          localStorage.setItem('fitnessSettings', JSON.stringify(data.settings))
-        }
-        if (data.workouts) {
-          localStorage.setItem('workouts', JSON.stringify(data.workouts))
-        }
-        if (data.nutrition) {
-          localStorage.setItem('nutrition', JSON.stringify(data.nutrition))
+          setSettings(prev => ({ ...prev, ...data.settings }))
         }
         
         setSaveMessage('Data imported successfully!')
         setTimeout(() => setSaveMessage(''), 2000)
       } catch (err) {
+        console.error('Error importing data:', err)
         setSaveMessage('Error importing data. Invalid file format.')
         setTimeout(() => setSaveMessage(''), 3000)
       }
     }
     reader.readAsText(file)
     e.target.value = ''
+  }
+
+  if (loading) {
+    return <div className="settings-page"><p>Loading...</p></div>
   }
 
   return (

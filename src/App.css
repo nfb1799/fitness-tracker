@@ -51,6 +51,36 @@
   color: #ffffff;
 }
 
+/* User Menu Styles */
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-name {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.logout-btn {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-hover);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
 /* Main Content Styles */
 .main-content {
   flex: 1;
@@ -97,6 +127,15 @@
     width: 100%;
     justify-content: center;
     flex-wrap: wrap;
+  }
+
+  .user-menu {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .user-name {
+    display: none;
   }
 
   .nav-btn {
