@@ -3,13 +3,51 @@ import './Workouts.css'
 import { useAuth } from '../contexts/AuthContext'
 import { getWorkouts, addWorkout, deleteWorkout } from '../firebase/firestoreService'
 
+const MEASUREMENT_TYPES = [
+  { value: 'resistance', label: 'Weight', unit: 'lbs', placeholder: '135' },
+  { value: 'assistance', label: 'Assistance', unit: 'lbs', placeholder: '30' },
+  { value: 'time', label: 'Time', unit: '', placeholder: '' },
+  { value: 'distance', label: 'Distance', unit: 'miles', placeholder: '1.5' },
+  { value: 'bodyweight', label: 'Bodyweight', unit: '', placeholder: '' },
+]
+
+// Helper to format time from total seconds
+const formatTimeDisplay = (totalSeconds) => {
+  if (!totalSeconds && totalSeconds !== 0) return ''
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  
+  const parts = []
+  if (hours > 0) parts.push(`${hours}h`)
+  if (minutes > 0) parts.push(`${minutes}m`)
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`)
+  return parts.join(' ')
+}
+
 function Workouts() {
   const { currentUser } = useAuth()
   const [exercises, setExercises] = useState([])
   const [loading, setLoading] = useState(true)
   const [exerciseName, setExerciseName] = useState('')
+  const [sets, setSets] = useState('')
   const [reps, setReps] = useState('')
-  const [resistance, setResistance] = useState('')
+  const [measurementType, setMeasurementType] = useState('resistance')
+  const [measurementValue, setMeasurementValue] = useState('')
+  // Time-specific state
+  const [timeHours, setTimeHours] = useState('')
+  const [timeMinutes, setTimeMinutes] = useState('')
+  const [timeSeconds, setTimeSeconds] = useState('')
+
+  const currentMeasurement = MEASUREMENT_TYPES.find(m => m.value === measurementType)
+
+  // Calculate total seconds from time inputs
+  const getTotalSeconds = () => {
+    const h = parseInt(timeHours) || 0
+    const m = parseInt(timeMinutes) || 0
+    const s = parseInt(timeSeconds) || 0
+    return h * 3600 + m * 60 + s
+  }
 
   useEffect(() => {
     const loadWorkouts = async () => {
@@ -29,14 +67,42 @@ function Workouts() {
   const handleAddExercise = async (e) => {
     e.preventDefault()
     
-    if (!exerciseName.trim() || !reps || !resistance) {
+    // Validate based on measurement type
+    const needsValue = measurementType !== 'bodyweight' && measurementType !== 'time'
+    const needsTime = measurementType === 'time'
+    const needsSetsReps = measurementType !== 'time'
+    const totalSeconds = getTotalSeconds()
+    
+    if (!exerciseName.trim()) {
       return
+    }
+    if (needsSetsReps && (!sets || !reps)) {
+      return
+    }
+    if (needsValue && !measurementValue) {
+      return
+    }
+    if (needsTime && totalSeconds === 0) {
+      return
+    }
+
+    let finalValue = null
+    let finalUnit = currentMeasurement.unit
+    
+    if (measurementType === 'time') {
+      finalValue = totalSeconds
+      finalUnit = 'seconds'
+    } else if (needsValue) {
+      finalValue = parseFloat(measurementValue)
     }
 
     const newExercise = {
       name: exerciseName.trim(),
-      reps: parseInt(reps),
-      resistance: parseFloat(resistance),
+      sets: needsSetsReps ? parseInt(sets) : null,
+      reps: needsSetsReps ? parseInt(reps) : null,
+      measurementType,
+      measurementValue: finalValue,
+      measurementUnit: finalUnit,
       date: new Date().toISOString().split('T')[0],
       localTimestamp: new Date().toLocaleString()
     }
@@ -45,8 +111,12 @@ function Workouts() {
       const id = await addWorkout(currentUser.uid, newExercise)
       setExercises([{ id, ...newExercise, timestamp: { toDate: () => new Date() } }, ...exercises])
       setExerciseName('')
+      setSets('')
       setReps('')
-      setResistance('')
+      setMeasurementValue('')
+      setTimeHours('')
+      setTimeMinutes('')
+      setTimeSeconds('')
     } catch (error) {
       console.error('Error adding workout:', error)
     }
@@ -81,32 +151,115 @@ function Workouts() {
           />
         </div>
         
-        <div className="form-row">
+        <div className="form-row three-cols">
+          <div className="form-group">
+            <label htmlFor="measurement-type">Measurement Type</label>
+            <select
+              id="measurement-type"
+              value={measurementType}
+              onChange={(e) => {
+                setMeasurementType(e.target.value)
+                setMeasurementValue('')
+              }}
+              className="measurement-select"
+            >
+              {MEASUREMENT_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="sets">Sets</label>
+            <input
+              type="number"
+              id="sets"
+              placeholder={measurementType === 'time' ? '-' : '3'}
+              min="1"
+              value={measurementType === 'time' ? '' : sets}
+              onChange={(e) => setSets(e.target.value)}
+              disabled={measurementType === 'time'}
+              className={measurementType === 'time' ? 'input-disabled' : ''}
+            />
+          </div>
+          
           <div className="form-group">
             <label htmlFor="reps">Reps</label>
             <input
               type="number"
               id="reps"
-              placeholder="10"
+              placeholder={measurementType === 'time' ? '-' : '10'}
               min="1"
-              value={reps}
+              value={measurementType === 'time' ? '' : reps}
               onChange={(e) => setReps(e.target.value)}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="resistance">Resistance (lbs)</label>
-            <input
-              type="number"
-              id="resistance"
-              placeholder="135"
-              min="0"
-              step="0.5"
-              value={resistance}
-              onChange={(e) => setResistance(e.target.value)}
+              disabled={measurementType === 'time'}
+              className={measurementType === 'time' ? 'input-disabled' : ''}
             />
           </div>
         </div>
+        
+        {measurementType === 'time' && (
+          <div className="form-group">
+            <label>Duration</label>
+            <div className="time-inputs">
+              <div className="time-input-group">
+                <input
+                  type="number"
+                  id="time-hours"
+                  placeholder="0"
+                  min="0"
+                  max="99"
+                  value={timeHours}
+                  onChange={(e) => setTimeHours(e.target.value)}
+                />
+                <span className="time-label">hrs</span>
+              </div>
+              <div className="time-input-group">
+                <input
+                  type="number"
+                  id="time-minutes"
+                  placeholder="0"
+                  min="0"
+                  max="59"
+                  value={timeMinutes}
+                  onChange={(e) => setTimeMinutes(e.target.value)}
+                />
+                <span className="time-label">min</span>
+              </div>
+              <div className="time-input-group">
+                <input
+                  type="number"
+                  id="time-seconds"
+                  placeholder="0"
+                  min="0"
+                  max="59"
+                  value={timeSeconds}
+                  onChange={(e) => setTimeSeconds(e.target.value)}
+                />
+                <span className="time-label">sec</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {measurementType !== 'bodyweight' && measurementType !== 'time' && (
+          <div className="form-group">
+            <label htmlFor="measurement-value">
+              {currentMeasurement.label} {currentMeasurement.unit && `(${currentMeasurement.unit})`}
+            </label>
+            <input
+              type="number"
+              id="measurement-value"
+              placeholder={currentMeasurement.placeholder}
+              min="0"
+              step={measurementType === 'distance' ? '0.1' : '0.5'}
+              value={measurementValue}
+              onChange={(e) => setMeasurementValue(e.target.value)}
+            />
+          </div>
+        )}
         
         <button type="submit" className="add-btn">
           Add Exercise
@@ -137,17 +290,68 @@ function Workouts() {
                     </button>
                   </div>
                   <div className="exercise-details">
-                  <div className="detail">
-                    <span className="detail-label">Reps</span>
-                    <span className="detail-value">{exercise.reps}</span>
+                    {/* Show Sets only if not a time-based exercise */}
+                    {exercise.measurementType !== 'time' && exercise.sets && (
+                      <div className="detail">
+                        <span className="detail-label">Sets</span>
+                        <span className="detail-value">{exercise.sets}</span>
+                      </div>
+                    )}
+                    
+                    {/* Show Reps only if not a time-based exercise */}
+                    {exercise.measurementType !== 'time' && exercise.reps && (
+                      <div className="detail">
+                        <span className="detail-label">Reps</span>
+                        <span className="detail-value">{exercise.reps}</span>
+                      </div>
+                    )}
+                    
+                    {/* Show Duration for time-based exercises */}
+                    {exercise.measurementType === 'time' && (
+                      <div className="detail">
+                        <span className="detail-label">Duration</span>
+                        <span className="detail-value">{formatTimeDisplay(exercise.measurementValue)}</span>
+                      </div>
+                    )}
+                    
+                    {/* Show Weight for resistance exercises */}
+                    {(exercise.measurementType === 'resistance' || (!exercise.measurementType && exercise.resistance)) && (
+                      <div className="detail">
+                        <span className="detail-label">Weight</span>
+                        <span className="detail-value">
+                          {exercise.measurementValue !== undefined && exercise.measurementValue !== null
+                            ? `${exercise.measurementValue} ${exercise.measurementUnit || 'lbs'}`
+                            : `${exercise.resistance} lbs`}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Show Assistance for assisted exercises */}
+                    {exercise.measurementType === 'assistance' && (
+                      <div className="detail">
+                        <span className="detail-label">Assistance</span>
+                        <span className="detail-value">-{exercise.measurementValue} {exercise.measurementUnit || 'lbs'}</span>
+                      </div>
+                    )}
+                    
+                    {/* Show Distance for distance exercises */}
+                    {exercise.measurementType === 'distance' && (
+                      <div className="detail">
+                        <span className="detail-label">Distance</span>
+                        <span className="detail-value">{exercise.measurementValue} {exercise.measurementUnit || 'miles'}</span>
+                      </div>
+                    )}
+                    
+                    {/* Show Bodyweight indicator */}
+                    {exercise.measurementType === 'bodyweight' && (
+                      <div className="detail">
+                        <span className="detail-label">Type</span>
+                        <span className="detail-value bodyweight-badge">Bodyweight</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="detail">
-                    <span className="detail-label">Weight</span>
-                    <span className="detail-value">{exercise.resistance} lbs</span>
-                  </div>
+                  <span className="exercise-time">{exercise.localTimestamp || (exercise.timestamp?.toDate ? exercise.timestamp.toDate().toLocaleString() : '')}</span>
                 </div>
-                <span className="exercise-time">{exercise.localTimestamp || (exercise.timestamp?.toDate ? exercise.timestamp.toDate().toLocaleString() : '')}</span>
-              </div>
               ))}
             </div>
           )

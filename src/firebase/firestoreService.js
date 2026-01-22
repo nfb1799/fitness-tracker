@@ -105,6 +105,49 @@ export async function getNutritionByDate(userId, date) {
   }))
 }
 
+// ============== Weigh-Ins ==============
+
+export async function getWeighIns(userId) {
+  const weighInsRef = collection(db, 'users', userId, 'weighins')
+  const q = query(weighInsRef, orderBy('timestamp', 'desc'))
+  const snapshot = await getDocs(q)
+  
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }))
+}
+
+export async function addWeighIn(userId, weighIn) {
+  const weighInsRef = collection(db, 'users', userId, 'weighins')
+  const docRef = await addDoc(weighInsRef, {
+    ...weighIn,
+    timestamp: Timestamp.now()
+  })
+  return docRef.id
+}
+
+export async function deleteWeighIn(userId, weighInId) {
+  const weighInRef = doc(db, 'users', userId, 'weighins', weighInId)
+  await deleteDoc(weighInRef)
+}
+
+export async function getWeighInsByDateRange(userId, startDate, endDate) {
+  const weighInsRef = collection(db, 'users', userId, 'weighins')
+  const q = query(
+    weighInsRef,
+    where('date', '>=', startDate),
+    where('date', '<=', endDate),
+    orderBy('date', 'asc')
+  )
+  const snapshot = await getDocs(q)
+  
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }))
+}
+
 // ============== Data Migration ==============
 
 // Helper function to migrate local storage data to Firestore

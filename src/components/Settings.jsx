@@ -10,13 +10,13 @@ function Settings() {
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState({
     name: '',
-    weight: '',
     height: '',
     calorieGoal: 2000,
     proteinGoal: 150,
     workoutDaysGoal: 4,
     weightUnit: 'lbs',
     heightUnit: 'in',
+    targetWeight: '',
     theme: localStorage.getItem('theme') || 'light'
   })
 
@@ -98,7 +98,7 @@ function Settings() {
   }
 
   const handleClearAll = async () => {
-    if (window.confirm('Are you sure you want to clear ALL data? This includes workouts, nutrition, and settings. This cannot be undone.')) {
+    if (window.confirm('Are you sure you want to clear ALL data? This includes workouts, nutrition, weigh-ins, and settings. This cannot be undone.')) {
       try {
         // Clear workouts
         const workoutsRef = collection(db, 'users', currentUser.uid, 'workouts')
@@ -109,6 +109,11 @@ function Settings() {
         const nutritionRef = collection(db, 'users', currentUser.uid, 'nutrition')
         const nutritionSnapshot = await getDocs(nutritionRef)
         await Promise.all(nutritionSnapshot.docs.map(docSnap => deleteDoc(doc(db, 'users', currentUser.uid, 'nutrition', docSnap.id))))
+        
+        // Clear weigh-ins
+        const weighInsRef = collection(db, 'users', currentUser.uid, 'weighins')
+        const weighInsSnapshot = await getDocs(weighInsRef)
+        await Promise.all(weighInsSnapshot.docs.map(docSnap => deleteDoc(doc(db, 'users', currentUser.uid, 'weighins', docSnap.id))))
         
         // Reset settings
         const defaultSettings = {
@@ -233,25 +238,6 @@ function Settings() {
             />
           </div>
           <div className="setting-item">
-            <label htmlFor="weight">Weight</label>
-            <div className="input-with-unit">
-              <input
-                type="number"
-                id="weight"
-                placeholder="180"
-                value={settings.weight}
-                onChange={(e) => handleChange('weight', e.target.value)}
-              />
-              <select
-                value={settings.weightUnit}
-                onChange={(e) => handleChange('weightUnit', e.target.value)}
-              >
-                <option value="lbs">lbs</option>
-                <option value="kg">kg</option>
-              </select>
-            </div>
-          </div>
-          <div className="setting-item">
             <label htmlFor="height">Height</label>
             <div className="input-with-unit">
               <input
@@ -275,8 +261,22 @@ function Settings() {
 
       {/* Goals Section */}
       <div className="settings-section">
-        <h3 className="section-title">🎯 Daily Goals</h3>
+        <h3 className="section-title">🎯 Goals</h3>
+        
         <div className="settings-grid">
+          <div className="setting-item">
+            <label htmlFor="targetWeight">Target Weight</label>
+            <div className="input-with-unit">
+              <input
+                type="number"
+                id="targetWeight"
+                placeholder={settings.weightUnit === 'lbs' ? '165' : '75'}
+                value={settings.targetWeight}
+                onChange={(e) => handleChange('targetWeight', e.target.value)}
+              />
+              <span className="unit-label">{settings.weightUnit}</span>
+            </div>
+          </div>
           <div className="setting-item">
             <label htmlFor="calorieGoal">Calorie Goal</label>
             <div className="input-with-unit">

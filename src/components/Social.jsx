@@ -100,7 +100,7 @@ function Social() {
           className={`filter-tab ${filter === 'meals' ? 'active' : ''}`}
           onClick={() => setFilter('meals')}
         >
-          🍽️ Meals
+          🍽️ Nutrition
         </button>
       </div>
 
