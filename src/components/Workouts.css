@@ -54,10 +54,95 @@
   color: var(--text-muted);
 }
 
+.form-group input.input-disabled,
+.form-group input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--bg-secondary);
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+.form-row.three-cols {
+  grid-template-columns: 2fr 1fr 1fr;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.2);
+}
+
+.form-group select option {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 0.5rem;
+}
+
+.measurement-select {
+  min-width: 180px;
+}
+
+/* Time Input Styles */
+.time-inputs {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.time-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.time-input-group input {
+  width: 70px;
+  padding: 0.75rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 1rem;
+  text-align: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.time-input-group input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.2);
+}
+
+.time-input-group input::placeholder {
+  color: var(--text-muted);
+}
+
+.time-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  min-width: 25px;
 }
 
 .add-btn {
@@ -173,6 +258,14 @@
   font-weight: 600;
 }
 
+.detail-value.bodyweight-badge {
+  font-size: 0.9rem;
+  background: linear-gradient(135deg, #646cff, #535bf2);
+  color: #ffffff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
 .exercise-time {
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -198,7 +291,24 @@
     grid-template-columns: 1fr;
   }
 
+  .form-row.three-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-row.three-cols .form-group:first-child {
+    grid-column: 1 / -1;
+  }
+
   .exercise-details {
-    gap: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .time-inputs {
+    flex-wrap: wrap;
+  }
+
+  .time-input-group input {
+    width: 60px;
   }
 }

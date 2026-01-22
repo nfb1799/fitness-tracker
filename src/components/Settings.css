@@ -92,6 +92,69 @@
   font-weight: 600;
 }
 
+/* Weight Goal Toggle */
+.weight-goal-container {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.goal-label {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+.weight-goal-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.weight-goal-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.weight-goal-btn:hover {
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.weight-goal-btn.active {
+  color: #fff;
+  border-color: transparent;
+}
+
+.weight-goal-btn.active.cut {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+}
+
+.weight-goal-btn.active.maintain {
+  background: linear-gradient(135deg, #646cff, #535bf2);
+}
+
+.weight-goal-btn.active.bulk {
+  background: linear-gradient(135deg, #4ecdc4, #44a08d);
+}
+
+.goal-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+  text-align: center;
+}
+
 /* Settings Grid */
 .settings-grid {
   display: grid;

@@ -3,6 +3,7 @@ import './App.css'
 import Workouts from './components/Workouts'
 import Dashboard from './components/Dashboard'
 import Nutrition from './components/Nutrition'
+import WeighIns from './components/WeighIns'
 import Settings from './components/Settings'
 import Social from './components/Social'
 import Auth from './components/Auth'
@@ -42,6 +43,8 @@ function App() {
         return <Workouts />
       case 'nutrition':
         return <Nutrition />
+      case 'weighins':
+        return <WeighIns />
       case 'social':
         return <Social />
       case 'settings':
@@ -87,6 +90,12 @@ function App() {
             onClick={() => setCurrentPage('nutrition')}
           >
             Nutrition
+          </button>
+          <button 
+            className={`nav-btn ${currentPage === 'weighins' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('weighins')}
+          >
+            Weigh-Ins
           </button>
           <button 
             className={`nav-btn ${currentPage === 'social' ? 'active' : ''}`}

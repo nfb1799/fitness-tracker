@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './Dashboard.css'
 import { useAuth } from '../contexts/AuthContext'
-import { getWorkouts, getNutrition, getUserSettings } from '../firebase/firestoreService'
+import { getWorkouts, getNutrition, getUserSettings, getWeighIns } from '../firebase/firestoreService'
 
 function Dashboard() {
   const { currentUser } = useAuth()
@@ -9,25 +9,30 @@ function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [exercises, setExercises] = useState([])
   const [meals, setMeals] = useState([])
+  const [weighIns, setWeighIns] = useState([])
   const [loading, setLoading] = useState(true)
   const [activityDays, setActivityDays] = useState(7)
   const [settings, setSettings] = useState({
     calorieGoal: 2000,
     proteinGoal: 150,
-    workoutDaysGoal: 4
+    workoutDaysGoal: 4,
+    targetWeight: null,
+    weightUnit: 'lbs'
   })
 
   useEffect(() => {
     const loadData = async () => {
       if (currentUser) {
         try {
-          const [workoutsData, nutritionData, userSettings] = await Promise.all([
+          const [workoutsData, nutritionData, userSettings, weighInsData] = await Promise.all([
             getWorkouts(currentUser.uid),
             getNutrition(currentUser.uid),
-            getUserSettings(currentUser.uid)
+            getUserSettings(currentUser.uid),
+            getWeighIns(currentUser.uid)
           ])
           setExercises(workoutsData)
           setMeals(nutritionData)
+          setWeighIns(weighInsData)
           if (userSettings) {
             setSettings(prev => ({ ...prev, ...userSettings }))
           }
@@ -131,6 +136,47 @@ function Dashboard() {
       .slice(0, 5)
   }
 
+  // Weight progress calculation
+  const getWeightProgress = () => {
+    const targetWeight = settings.targetWeight ? parseFloat(settings.targetWeight) : null
+    
+    if (!targetWeight || weighIns.length === 0) return null
+    
+    const sorted = [...weighIns].sort((a, b) => new Date(a.date) - new Date(b.date))
+    const startWeight = sorted[0].weight
+    const currentWeight = sorted[sorted.length - 1].weight
+    
+    // Auto-detect if cutting or bulking based on target vs start
+    const isCutting = targetWeight < startWeight
+    const remaining = Math.abs(targetWeight - currentWeight)
+    
+    let progress = 0
+    const totalChange = Math.abs(targetWeight - startWeight)
+    if (totalChange > 0) {
+      if (isCutting) {
+        progress = ((startWeight - currentWeight) / (startWeight - targetWeight)) * 100
+      } else {
+        progress = ((currentWeight - startWeight) / (targetWeight - startWeight)) * 100
+      }
+    }
+    
+    progress = Math.max(0, Math.min(100, progress))
+    
+    const goalReached = isCutting 
+      ? currentWeight <= targetWeight
+      : currentWeight >= targetWeight
+
+    return {
+      currentWeight,
+      targetWeight,
+      startWeight,
+      remaining,
+      progress,
+      goalReached,
+      isCutting
+    }
+  }
+
   // Streak calculation
   const getStreak = () => {
     const sortedDates = [...new Set(exercises.map(ex => ex.date))]
@@ -225,6 +271,7 @@ function Dashboard() {
   const streak = getStreak()
   const activityData = getActivityData(activityDays)
   const maxCalories = Math.max(...activityData.map(d => d.calories), 1)
+  const weightProgress = getWeightProgress()
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -320,6 +367,43 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Weight Progress Card */}
+      {weightProgress && (
+        <div className="weight-progress-card">
+          <div className="weight-progress-header">
+            <span className="weight-icon">⚖️</span>
+            <h3 className="weight-title">
+              {weightProgress.goalReached 
+                ? '🎉 Goal Reached!' 
+                : `${weightProgress.isCutting ? 'Cutting' : 'Bulking'} Progress`}
+            </h3>
+          </div>
+          <div className="weight-progress-content">
+            <div className="weight-stats">
+              <div className="weight-stat">
+                <span className="weight-stat-value">{weightProgress.currentWeight}</span>
+                <span className="weight-stat-label">Current ({settings.weightUnit})</span>
+              </div>
+              <div className="weight-stat target">
+                <span className="weight-stat-value">{weightProgress.targetWeight}</span>
+                <span className="weight-stat-label">Target ({settings.weightUnit})</span>
+              </div>
+              <div className="weight-stat">
+                <span className="weight-stat-value">{weightProgress.remaining.toFixed(1)}</span>
+                <span className="weight-stat-label">To Go ({settings.weightUnit})</span>
+              </div>
+            </div>
+            <div className="weight-progress-bar">
+              <div 
+                className={`weight-progress-fill ${weightProgress.goalReached ? 'complete' : ''}`}
+                style={{ width: `${weightProgress.progress}%` }}
+              ></div>
+            </div>
+            <span className="weight-progress-percent">{Math.round(weightProgress.progress)}% complete</span>
+          </div>
+        </div>
+      )}
 
       {/* Activity Chart */}
       <div className="activity-section">
