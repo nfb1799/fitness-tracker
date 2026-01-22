@@ -1,8 +1,8 @@
 .settings-page {
   width: 100%;
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 3rem;
 }
 
 .settings-title {
@@ -316,6 +316,12 @@
 }
 
 /* Responsive */
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 1.5rem 1rem;
+  }
+}
+
 @media (max-width: 600px) {
   .settings-page {
     padding: 1rem;

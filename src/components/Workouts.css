@@ -1,8 +1,8 @@
 .workouts-page {
   width: 100%;
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 3rem;
 }
 
 .workouts-title {
@@ -103,8 +103,8 @@
 }
 
 .exercises-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 1rem;
 }
 
@@ -179,6 +179,16 @@
 }
 
 /* Responsive */
+@media (max-width: 768px) {
+  .workouts-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .exercises-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 600px) {
   .workouts-page {
     padding: 1rem;
