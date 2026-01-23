@@ -47,6 +47,14 @@ function Workouts() {
   // Drag and drop state
   const [draggedExercise, setDraggedExercise] = useState(null)
   const [dragOverExercise, setDragOverExercise] = useState(null)
+  
+  // Saved exercises for autocomplete
+  const [savedExercises, setSavedExercises] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  
+  // Copy workout modal state
+  const [showCopyModal, setShowCopyModal] = useState(false)
+  const [copyFromDate, setCopyFromDate] = useState('')
 
   const currentMeasurement = MEASUREMENT_TYPES.find(m => m.value === measurementType)
 
@@ -64,6 +72,23 @@ function Workouts() {
         try {
           const workouts = await getWorkouts(currentUser.uid)
           setExercises(workouts)
+          
+          // Extract unique exercise templates (name + type + last used values)
+          const exerciseMap = new Map()
+          workouts.forEach(ex => {
+            const key = ex.name?.toLowerCase()
+            if (key && !exerciseMap.has(key)) {
+              exerciseMap.set(key, {
+                name: ex.name,
+                measurementType: ex.measurementType,
+                measurementValue: ex.measurementValue,
+                measurementUnit: ex.measurementUnit,
+                sets: ex.sets,
+                reps: ex.reps
+              })
+            }
+          })
+          setSavedExercises(Array.from(exerciseMap.values()))
         } catch (error) {
           console.error('Error loading workouts:', error)
         }
@@ -161,6 +186,21 @@ function Workouts() {
       setTimeHours('')
       setTimeMinutes('')
       setTimeSeconds('')
+      
+      // Update saved exercises list with the new exercise if it's new
+      const existingIndex = savedExercises.findIndex(
+        ex => ex.name.toLowerCase() === exerciseName.trim().toLowerCase()
+      )
+      if (existingIndex === -1) {
+        setSavedExercises(prev => [...prev, {
+          name: exerciseName.trim(),
+          measurementType,
+          measurementValue: finalValue,
+          measurementUnit: finalUnit,
+          sets: needsSetsReps ? numSets : null,
+          reps: needsSetsReps ? repsArray : null
+        }])
+      }
     } catch (error) {
       console.error('Error adding workout:', error)
     }
@@ -340,6 +380,80 @@ function Workouts() {
     setDraggedExercise(null)
   }
 
+  // Select a saved exercise from suggestions
+  const selectSavedExercise = (savedEx) => {
+    setExerciseName(savedEx.name)
+    setMeasurementType(savedEx.measurementType || 'resistance')
+    setMeasurementValue(savedEx.measurementValue || '')
+    
+    if (savedEx.measurementType === 'time' && savedEx.measurementValue) {
+      const totalSeconds = savedEx.measurementValue
+      setTimeHours(Math.floor(totalSeconds / 3600) || '')
+      setTimeMinutes(Math.floor((totalSeconds % 3600) / 60) || '')
+      setTimeSeconds(totalSeconds % 60 || '')
+    }
+    
+    if (savedEx.sets) {
+      setSets(String(savedEx.sets))
+      if (Array.isArray(savedEx.reps)) {
+        setRepsPerSet(savedEx.reps.map(String))
+      } else if (savedEx.reps) {
+        setRepsPerSet([String(savedEx.reps)])
+      }
+    }
+    
+    setShowSuggestions(false)
+  }
+
+  // Get filtered suggestions based on input
+  const getFilteredSuggestions = () => {
+    if (!exerciseName.trim()) return savedExercises.slice(0, 10)
+    const search = exerciseName.toLowerCase()
+    return savedExercises
+      .filter(ex => ex.name.toLowerCase().includes(search))
+      .slice(0, 10)
+  }
+
+  // Get dates that have workouts for copy modal
+  const getDatesWithWorkouts = () => {
+    const dates = [...new Set(exercises.map(ex => ex.date))].filter(d => d !== selectedDate)
+    return dates.sort((a, b) => new Date(b) - new Date(a)).slice(0, 30)
+  }
+
+  // Copy workout from another day
+  const copyWorkoutFromDate = async () => {
+    if (!copyFromDate) return
+    
+    const exercisesToCopy = exercises.filter(ex => ex.date === copyFromDate)
+    if (exercisesToCopy.length === 0) return
+
+    try {
+      const newExercises = []
+      for (const ex of exercisesToCopy) {
+        const newExercise = {
+          name: ex.name,
+          sets: ex.sets,
+          reps: ex.reps,
+          measurementType: ex.measurementType,
+          measurementValue: ex.measurementValue,
+          measurementUnit: ex.measurementUnit,
+          date: selectedDate,
+          localTimestamp: new Date().toLocaleString(),
+          order: ex.order
+        }
+        
+        const id = await addWorkout(currentUser.uid, newExercise)
+        newExercises.push({ id, ...newExercise, timestamp: { toDate: () => new Date() } })
+      }
+      
+      setExercises([...newExercises, ...exercises])
+      setShowCopyModal(false)
+      setCopyFromDate('')
+    } catch (error) {
+      console.error('Error copying workout:', error)
+    }
+  }
+
   if (loading) {
     return <div className="workouts-page"><p>Loading...</p></div>
   }
@@ -402,18 +516,101 @@ function Workouts() {
             Today
           </button>
         )}
+        <button 
+          className="copy-workout-btn"
+          onClick={() => setShowCopyModal(true)}
+          title="Copy workout from another day"
+        >
+          📋 Copy
+        </button>
       </div>
       
+      {/* Copy Workout Modal */}
+      {showCopyModal && (
+        <div className="modal-overlay" onClick={() => setShowCopyModal(false)}>
+          <div className="copy-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Copy Workout From</h3>
+            <p className="modal-description">Select a date to copy all exercises from</p>
+            
+            <div className="copy-dates-list">
+              {getDatesWithWorkouts().length === 0 ? (
+                <p className="empty-dates">No previous workouts found</p>
+              ) : (
+                getDatesWithWorkouts().map(date => {
+                  const exerciseCount = exercises.filter(ex => ex.date === date).length
+                  return (
+                    <button
+                      key={date}
+                      className={`copy-date-option ${copyFromDate === date ? 'selected' : ''}`}
+                      onClick={() => setCopyFromDate(date)}
+                    >
+                      <span className="copy-date-label">{formatDisplayDate(date)}</span>
+                      <span className="copy-date-detail">{date} • {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}</span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+            
+            <div className="modal-actions">
+              <button 
+                className="modal-copy-btn" 
+                onClick={copyWorkoutFromDate}
+                disabled={!copyFromDate}
+              >
+                Copy Exercises
+              </button>
+              <button 
+                className="modal-cancel-btn" 
+                onClick={() => { setShowCopyModal(false); setCopyFromDate(''); }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <form className="workout-form" onSubmit={handleAddExercise}>
-        <div className="form-group">
+        <div className="form-group exercise-name-group">
           <label htmlFor="exercise-name">Exercise Name</label>
-          <input
-            type="text"
-            id="exercise-name"
-            placeholder="e.g., Bench Press, Squats..."
-            value={exerciseName}
-            onChange={(e) => setExerciseName(e.target.value)}
-          />
+          <div className="autocomplete-container">
+            <input
+              type="text"
+              id="exercise-name"
+              placeholder="e.g., Bench Press, Squats..."
+              value={exerciseName}
+              onChange={(e) => setExerciseName(e.target.value)}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              autoComplete="off"
+            />
+            {showSuggestions && getFilteredSuggestions().length > 0 && (
+              <div className="suggestions-dropdown">
+                {getFilteredSuggestions().map((savedEx, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className="suggestion-item"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      selectSavedExercise(savedEx)
+                    }}
+                  >
+                    <span className="suggestion-name">{savedEx.name}</span>
+                    <span className="suggestion-details">
+                      {savedEx.measurementType === 'time' 
+                        ? formatTimeDisplay(savedEx.measurementValue)
+                        : savedEx.sets && savedEx.reps 
+                          ? `${savedEx.sets}×${Array.isArray(savedEx.reps) ? savedEx.reps[0] : savedEx.reps}${savedEx.measurementValue ? ` @ ${savedEx.measurementValue}${savedEx.measurementUnit}` : ''}`
+                          : savedEx.measurementType
+                      }
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="form-row three-cols">

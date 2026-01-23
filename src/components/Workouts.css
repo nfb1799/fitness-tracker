@@ -101,6 +101,209 @@
   box-shadow: 0 2px 8px rgba(100, 108, 255, 0.4);
 }
 
+.copy-workout-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.copy-workout-btn:hover {
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+/* Copy Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.copy-modal {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.copy-modal h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+}
+
+.modal-description {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+}
+
+.copy-dates-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 300px;
+  margin-bottom: 1rem;
+}
+
+.empty-dates {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 2rem;
+}
+
+.copy-date-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.copy-date-option:hover {
+  border-color: var(--accent-color);
+}
+
+.copy-date-option.selected {
+  border-color: var(--accent-color);
+  background: rgba(100, 108, 255, 0.1);
+}
+
+.copy-date-label {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.copy-date-detail {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.modal-copy-btn {
+  flex: 1;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #646cff, #535bf2);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-copy-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(100, 108, 255, 0.4);
+}
+
+.modal-copy-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-cancel-btn {
+  flex: 1;
+  padding: 0.75rem;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-cancel-btn:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-secondary);
+}
+
+/* Autocomplete Styles */
+.exercise-name-group {
+  position: relative;
+}
+
+.autocomplete-container {
+  position: relative;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-top: 4px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.suggestion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.suggestion-item:hover {
+  background: rgba(100, 108, 255, 0.1);
+}
+
+.suggestion-item:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.suggestion-name {
+  font-weight: 500;
+}
+
+.suggestion-details {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
 /* Form Styles */
 .workout-form {
   background-color: var(--bg-secondary);
