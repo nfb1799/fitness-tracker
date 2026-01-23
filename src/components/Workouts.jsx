@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './Workouts.css'
 import { useAuth } from '../contexts/AuthContext'
-import { getWorkouts, addWorkout, deleteWorkout } from '../firebase/firestoreService'
+import { getWorkouts, addWorkout, deleteWorkout, updateWorkout, updateWorkoutsOrder } from '../firebase/firestoreService'
 
 const MEASUREMENT_TYPES = [
   { value: 'resistance', label: 'Weight', unit: 'lbs', placeholder: '135' },
@@ -29,15 +29,24 @@ function Workouts() {
   const { currentUser } = useAuth()
   const [exercises, setExercises] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [exerciseName, setExerciseName] = useState('')
   const [sets, setSets] = useState('')
-  const [reps, setReps] = useState('')
+  const [repsPerSet, setRepsPerSet] = useState([]) // Array to hold reps for each set
   const [measurementType, setMeasurementType] = useState('resistance')
   const [measurementValue, setMeasurementValue] = useState('')
   // Time-specific state
   const [timeHours, setTimeHours] = useState('')
   const [timeMinutes, setTimeMinutes] = useState('')
   const [timeSeconds, setTimeSeconds] = useState('')
+  
+  // Edit mode state
+  const [editingExercise, setEditingExercise] = useState(null)
+  const [editForm, setEditForm] = useState({})
+  
+  // Drag and drop state
+  const [draggedExercise, setDraggedExercise] = useState(null)
+  const [dragOverExercise, setDragOverExercise] = useState(null)
 
   const currentMeasurement = MEASUREMENT_TYPES.find(m => m.value === measurementType)
 
@@ -64,6 +73,33 @@ function Workouts() {
     loadWorkouts()
   }, [currentUser])
 
+  // Update repsPerSet array when sets changes
+  const handleSetsChange = (newSets) => {
+    setSets(newSets)
+    const numSets = parseInt(newSets) || 0
+    if (numSets > 0) {
+      setRepsPerSet(prev => {
+        const newReps = [...prev]
+        // Expand or shrink the array to match number of sets
+        while (newReps.length < numSets) {
+          newReps.push(prev[prev.length - 1] || '') // Copy last value or empty
+        }
+        return newReps.slice(0, numSets)
+      })
+    } else {
+      setRepsPerSet([])
+    }
+  }
+
+  // Update reps for a specific set
+  const handleRepsChange = (index, value) => {
+    setRepsPerSet(prev => {
+      const newReps = [...prev]
+      newReps[index] = value
+      return newReps
+    })
+  }
+
   const handleAddExercise = async (e) => {
     e.preventDefault()
     
@@ -72,11 +108,16 @@ function Workouts() {
     const needsTime = measurementType === 'time'
     const needsSetsReps = measurementType !== 'time'
     const totalSeconds = getTotalSeconds()
+    const numSets = parseInt(sets) || 0
     
     if (!exerciseName.trim()) {
       return
     }
-    if (needsSetsReps && (!sets || !reps)) {
+    if (needsSetsReps && (!sets || numSets === 0)) {
+      return
+    }
+    // Check that all sets have reps filled in
+    if (needsSetsReps && (repsPerSet.length !== numSets || repsPerSet.some(r => !r || parseInt(r) <= 0))) {
       return
     }
     if (needsValue && !measurementValue) {
@@ -96,14 +137,17 @@ function Workouts() {
       finalValue = parseFloat(measurementValue)
     }
 
+    // Convert repsPerSet to numbers
+    const repsArray = repsPerSet.map(r => parseInt(r))
+
     const newExercise = {
       name: exerciseName.trim(),
-      sets: needsSetsReps ? parseInt(sets) : null,
-      reps: needsSetsReps ? parseInt(reps) : null,
+      sets: needsSetsReps ? numSets : null,
+      reps: needsSetsReps ? repsArray : null, // Now stores array of reps per set
       measurementType,
       measurementValue: finalValue,
       measurementUnit: finalUnit,
-      date: new Date().toISOString().split('T')[0],
+      date: selectedDate,
       localTimestamp: new Date().toLocaleString()
     }
 
@@ -112,7 +156,7 @@ function Workouts() {
       setExercises([{ id, ...newExercise, timestamp: { toDate: () => new Date() } }, ...exercises])
       setExerciseName('')
       setSets('')
-      setReps('')
+      setRepsPerSet([])
       setMeasurementValue('')
       setTimeHours('')
       setTimeMinutes('')
@@ -131,13 +175,234 @@ function Workouts() {
     }
   }
 
+  // Edit exercise functions
+  const startEditing = (exercise) => {
+    const totalSeconds = exercise.measurementType === 'time' ? exercise.measurementValue || 0 : 0
+    setEditingExercise(exercise.id)
+    setEditForm({
+      name: exercise.name,
+      sets: exercise.sets || '',
+      repsPerSet: Array.isArray(exercise.reps) ? exercise.reps.map(String) : (exercise.reps ? [String(exercise.reps)] : []),
+      measurementType: exercise.measurementType || 'resistance',
+      measurementValue: exercise.measurementType !== 'time' ? (exercise.measurementValue || '') : '',
+      timeHours: Math.floor(totalSeconds / 3600) || '',
+      timeMinutes: Math.floor((totalSeconds % 3600) / 60) || '',
+      timeSeconds: totalSeconds % 60 || ''
+    })
+  }
+
+  const cancelEditing = () => {
+    setEditingExercise(null)
+    setEditForm({})
+  }
+
+  const handleEditFormChange = (field, value) => {
+    setEditForm(prev => {
+      const updated = { ...prev, [field]: value }
+      
+      // Handle sets change to resize repsPerSet array
+      if (field === 'sets') {
+        const numSets = parseInt(value) || 0
+        const newReps = [...(prev.repsPerSet || [])]
+        while (newReps.length < numSets) {
+          newReps.push(prev.repsPerSet?.[prev.repsPerSet.length - 1] || '')
+        }
+        updated.repsPerSet = newReps.slice(0, numSets)
+      }
+      
+      return updated
+    })
+  }
+
+  const handleEditRepsChange = (index, value) => {
+    setEditForm(prev => {
+      const newReps = [...(prev.repsPerSet || [])]
+      newReps[index] = value
+      return { ...prev, repsPerSet: newReps }
+    })
+  }
+
+  const saveEdit = async () => {
+    if (!editForm.name?.trim()) return
+
+    const needsSetsReps = editForm.measurementType !== 'time'
+    const needsValue = editForm.measurementType !== 'bodyweight' && editForm.measurementType !== 'time'
+    const needsTime = editForm.measurementType === 'time'
+    
+    const numSets = parseInt(editForm.sets) || 0
+    const totalSeconds = (parseInt(editForm.timeHours) || 0) * 3600 + 
+                         (parseInt(editForm.timeMinutes) || 0) * 60 + 
+                         (parseInt(editForm.timeSeconds) || 0)
+
+    // Validation
+    if (needsSetsReps && numSets === 0) return
+    if (needsSetsReps && (editForm.repsPerSet?.length !== numSets || editForm.repsPerSet.some(r => !r || parseInt(r) <= 0))) return
+    if (needsValue && !editForm.measurementValue) return
+    if (needsTime && totalSeconds === 0) return
+
+    const measurementInfo = MEASUREMENT_TYPES.find(m => m.value === editForm.measurementType)
+    
+    let finalValue = null
+    let finalUnit = measurementInfo?.unit || ''
+    
+    if (editForm.measurementType === 'time') {
+      finalValue = totalSeconds
+      finalUnit = 'seconds'
+    } else if (needsValue) {
+      finalValue = parseFloat(editForm.measurementValue)
+    }
+
+    const updates = {
+      name: editForm.name.trim(),
+      sets: needsSetsReps ? numSets : null,
+      reps: needsSetsReps ? editForm.repsPerSet.map(r => parseInt(r)) : null,
+      measurementType: editForm.measurementType,
+      measurementValue: finalValue,
+      measurementUnit: finalUnit
+    }
+
+    try {
+      await updateWorkout(currentUser.uid, editingExercise, updates)
+      setExercises(exercises.map(ex => 
+        ex.id === editingExercise ? { ...ex, ...updates } : ex
+      ))
+      cancelEditing()
+    } catch (error) {
+      console.error('Error updating workout:', error)
+    }
+  }
+
+  // Drag and drop functions
+  const handleDragStart = (e, exercise) => {
+    setDraggedExercise(exercise)
+    e.dataTransfer.effectAllowed = 'move'
+    e.currentTarget.classList.add('dragging')
+  }
+
+  const handleDragEnd = (e) => {
+    e.currentTarget.classList.remove('dragging')
+    setDraggedExercise(null)
+    setDragOverExercise(null)
+  }
+
+  const handleDragOver = (e, exercise) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggedExercise && exercise.id !== draggedExercise.id) {
+      setDragOverExercise(exercise.id)
+    }
+  }
+
+  const handleDragLeave = () => {
+    setDragOverExercise(null)
+  }
+
+  const handleDrop = async (e, targetExercise) => {
+    e.preventDefault()
+    setDragOverExercise(null)
+    
+    if (!draggedExercise || draggedExercise.id === targetExercise.id) return
+
+    // Get exercises for selected date
+    const dateExercises = exercises.filter(ex => ex.date === selectedDate)
+    const draggedIndex = dateExercises.findIndex(ex => ex.id === draggedExercise.id)
+    const targetIndex = dateExercises.findIndex(ex => ex.id === targetExercise.id)
+
+    if (draggedIndex === -1 || targetIndex === -1) return
+
+    // Reorder the array
+    const reordered = [...dateExercises]
+    const [removed] = reordered.splice(draggedIndex, 1)
+    reordered.splice(targetIndex, 0, removed)
+
+    // Assign new order values
+    const orderUpdates = reordered.map((ex, index) => ({
+      id: ex.id,
+      order: index
+    }))
+
+    // Update local state immediately for responsiveness
+    const newExercises = exercises.map(ex => {
+      const orderUpdate = orderUpdates.find(u => u.id === ex.id)
+      return orderUpdate ? { ...ex, order: orderUpdate.order } : ex
+    })
+    setExercises(newExercises)
+
+    // Persist to database
+    try {
+      await updateWorkoutsOrder(currentUser.uid, orderUpdates)
+    } catch (error) {
+      console.error('Error updating order:', error)
+      // Revert on error
+      setExercises(exercises)
+    }
+
+    setDraggedExercise(null)
+  }
+
   if (loading) {
     return <div className="workouts-page"><p>Loading...</p></div>
   }
 
+  // Date navigation helpers
+  const formatDisplayDate = (dateStr) => {
+    const date = new Date(dateStr + 'T00:00:00')
+    const today = new Date().toISOString().split('T')[0]
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    
+    if (dateStr === today) return 'Today'
+    if (dateStr === yesterday) return 'Yesterday'
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  }
+
+  const navigateDate = (direction) => {
+    const current = new Date(selectedDate + 'T00:00:00')
+    current.setDate(current.getDate() + direction)
+    setSelectedDate(current.toISOString().split('T')[0])
+  }
+
+  const isToday = selectedDate === new Date().toISOString().split('T')[0]
+
   return (
     <div className="workouts-page">
       <h2 className="workouts-title">Log Your Workout</h2>
+      
+      {/* Date Navigation */}
+      <div className="date-navigation">
+        <button 
+          className="date-nav-btn" 
+          onClick={() => navigateDate(-1)}
+          aria-label="Previous day"
+        >
+          ‹
+        </button>
+        <div className="date-display">
+          <span className="date-label">{formatDisplayDate(selectedDate)}</span>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            max={new Date().toISOString().split('T')[0]}
+            className="date-input"
+          />
+        </div>
+        <button 
+          className="date-nav-btn" 
+          onClick={() => navigateDate(1)}
+          disabled={isToday}
+          aria-label="Next day"
+        >
+          ›
+        </button>
+        {!isToday && (
+          <button 
+            className="today-btn" 
+            onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+          >
+            Today
+          </button>
+        )}
+      </div>
       
       <form className="workout-form" onSubmit={handleAddExercise}>
         <div className="form-group">
@@ -178,27 +443,61 @@ function Workouts() {
               id="sets"
               placeholder={measurementType === 'time' ? '-' : '3'}
               min="1"
+              max="20"
               value={measurementType === 'time' ? '' : sets}
-              onChange={(e) => setSets(e.target.value)}
+              onChange={(e) => handleSetsChange(e.target.value)}
               disabled={measurementType === 'time'}
               className={measurementType === 'time' ? 'input-disabled' : ''}
             />
           </div>
           
           <div className="form-group">
-            <label htmlFor="reps">Reps</label>
-            <input
-              type="number"
-              id="reps"
-              placeholder={measurementType === 'time' ? '-' : '10'}
-              min="1"
-              value={measurementType === 'time' ? '' : reps}
-              onChange={(e) => setReps(e.target.value)}
-              disabled={measurementType === 'time'}
-              className={measurementType === 'time' ? 'input-disabled' : ''}
-            />
+            <label>Reps {parseInt(sets) > 1 ? '(per set)' : ''}</label>
+            {measurementType === 'time' ? (
+              <input
+                type="number"
+                placeholder="-"
+                disabled
+                className="input-disabled"
+              />
+            ) : parseInt(sets) > 1 ? (
+              <div className="reps-per-set-hint">
+                Enter below ↓
+              </div>
+            ) : (
+              <input
+                type="number"
+                id="reps"
+                placeholder="10"
+                min="1"
+                value={repsPerSet[0] || ''}
+                onChange={(e) => handleRepsChange(0, e.target.value)}
+              />
+            )}
           </div>
         </div>
+        
+        {/* Dynamic reps inputs for multiple sets */}
+        {measurementType !== 'time' && parseInt(sets) > 1 && (
+          <div className="reps-per-set-container">
+            <label className="reps-per-set-label">Reps for each set</label>
+            <div className="reps-per-set-inputs">
+              {Array.from({ length: parseInt(sets) || 0 }, (_, index) => (
+                <div key={index} className="rep-input-group">
+                  <span className="set-number">Set {index + 1}</span>
+                  <input
+                    type="number"
+                    placeholder="10"
+                    min="1"
+                    value={repsPerSet[index] || ''}
+                    onChange={(e) => handleRepsChange(index, e.target.value)}
+                    className="rep-input"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         {measurementType === 'time' && (
           <div className="form-group">
@@ -267,90 +566,253 @@ function Workouts() {
       </form>
 
       <div className="exercises-list">
-        <h3 className="list-title">Today's Exercises</h3>
+        <h3 className="list-title">{isToday ? "Today's" : formatDisplayDate(selectedDate) + "'s"} Exercises</h3>
         
         {(() => {
-          const today = new Date().toISOString().split('T')[0]
-          const todaysExercises = exercises.filter(ex => ex.date === today)
+          const selectedExercises = exercises
+            .filter(ex => ex.date === selectedDate)
+            .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity))
           
-          return todaysExercises.length === 0 ? (
-            <p className="empty-message">No exercises logged yet. Start adding your workout!</p>
+          return selectedExercises.length === 0 ? (
+            <p className="empty-message">No exercises logged for this day. {isToday ? 'Start adding your workout!' : 'Add exercises or select another date.'}</p>
           ) : (
             <div className="exercises-grid">
-              {todaysExercises.map((exercise) => (
-                <div key={exercise.id} className="exercise-card">
-                  <div className="exercise-header">
-                    <h4 className="exercise-name">{exercise.name}</h4>
-                    <button 
-                      className="delete-btn"
-                      onClick={() => handleDeleteExercise(exercise.id)}
-                      aria-label="Delete exercise"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div className="exercise-details">
-                    {/* Show Sets only if not a time-based exercise */}
-                    {exercise.measurementType !== 'time' && exercise.sets && (
-                      <div className="detail">
-                        <span className="detail-label">Sets</span>
-                        <span className="detail-value">{exercise.sets}</span>
+              {selectedExercises.map((exercise) => (
+                <div 
+                  key={exercise.id} 
+                  className={`exercise-card ${dragOverExercise === exercise.id ? 'drag-over' : ''} ${draggedExercise?.id === exercise.id ? 'dragging' : ''}`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, exercise)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e, exercise)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, exercise)}
+                >
+                  {editingExercise === exercise.id ? (
+                    // Edit Mode
+                    <div className="exercise-edit-form">
+                      <div className="edit-form-group">
+                        <label>Exercise Name</label>
+                        <input
+                          type="text"
+                          value={editForm.name || ''}
+                          onChange={(e) => handleEditFormChange('name', e.target.value)}
+                          placeholder="Exercise name"
+                        />
                       </div>
-                    )}
-                    
-                    {/* Show Reps only if not a time-based exercise */}
-                    {exercise.measurementType !== 'time' && exercise.reps && (
-                      <div className="detail">
-                        <span className="detail-label">Reps</span>
-                        <span className="detail-value">{exercise.reps}</span>
+                      
+                      <div className="edit-form-group">
+                        <label>Type</label>
+                        <select
+                          value={editForm.measurementType || 'resistance'}
+                          onChange={(e) => handleEditFormChange('measurementType', e.target.value)}
+                        >
+                          {MEASUREMENT_TYPES.map((type) => (
+                            <option key={type.value} value={type.value}>
+                              {type.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    )}
-                    
-                    {/* Show Duration for time-based exercises */}
-                    {exercise.measurementType === 'time' && (
-                      <div className="detail">
-                        <span className="detail-label">Duration</span>
-                        <span className="detail-value">{formatTimeDisplay(exercise.measurementValue)}</span>
+
+                      {editForm.measurementType !== 'time' && (
+                        <div className="edit-form-row">
+                          <div className="edit-form-group">
+                            <label>Sets</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="20"
+                              value={editForm.sets || ''}
+                              onChange={(e) => handleEditFormChange('sets', e.target.value)}
+                            />
+                          </div>
+                          <div className="edit-form-group">
+                            <label>Reps</label>
+                            {parseInt(editForm.sets) > 1 ? (
+                              <span className="edit-reps-hint">Below</span>
+                            ) : (
+                              <input
+                                type="number"
+                                min="1"
+                                value={editForm.repsPerSet?.[0] || ''}
+                                onChange={(e) => handleEditRepsChange(0, e.target.value)}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {editForm.measurementType !== 'time' && parseInt(editForm.sets) > 1 && (
+                        <div className="edit-reps-container">
+                          {Array.from({ length: parseInt(editForm.sets) || 0 }, (_, index) => (
+                            <div key={index} className="edit-rep-input-group">
+                              <span>S{index + 1}</span>
+                              <input
+                                type="number"
+                                min="1"
+                                value={editForm.repsPerSet?.[index] || ''}
+                                onChange={(e) => handleEditRepsChange(index, e.target.value)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {editForm.measurementType === 'time' && (
+                        <div className="edit-time-inputs">
+                          <div className="edit-time-group">
+                            <input
+                              type="number"
+                              min="0"
+                              max="99"
+                              value={editForm.timeHours || ''}
+                              onChange={(e) => handleEditFormChange('timeHours', e.target.value)}
+                              placeholder="0"
+                            />
+                            <span>h</span>
+                          </div>
+                          <div className="edit-time-group">
+                            <input
+                              type="number"
+                              min="0"
+                              max="59"
+                              value={editForm.timeMinutes || ''}
+                              onChange={(e) => handleEditFormChange('timeMinutes', e.target.value)}
+                              placeholder="0"
+                            />
+                            <span>m</span>
+                          </div>
+                          <div className="edit-time-group">
+                            <input
+                              type="number"
+                              min="0"
+                              max="59"
+                              value={editForm.timeSeconds || ''}
+                              onChange={(e) => handleEditFormChange('timeSeconds', e.target.value)}
+                              placeholder="0"
+                            />
+                            <span>s</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {editForm.measurementType !== 'bodyweight' && editForm.measurementType !== 'time' && (
+                        <div className="edit-form-group">
+                          <label>
+                            {MEASUREMENT_TYPES.find(m => m.value === editForm.measurementType)?.label || 'Value'}
+                            {' '}({MEASUREMENT_TYPES.find(m => m.value === editForm.measurementType)?.unit || ''})
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step={editForm.measurementType === 'distance' ? '0.1' : '0.5'}
+                            value={editForm.measurementValue || ''}
+                            onChange={(e) => handleEditFormChange('measurementValue', e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      <div className="edit-actions">
+                        <button type="button" className="save-edit-btn" onClick={saveEdit}>
+                          Save
+                        </button>
+                        <button type="button" className="cancel-edit-btn" onClick={cancelEditing}>
+                          Cancel
+                        </button>
                       </div>
-                    )}
-                    
-                    {/* Show Weight for resistance exercises */}
-                    {(exercise.measurementType === 'resistance' || (!exercise.measurementType && exercise.resistance)) && (
-                      <div className="detail">
-                        <span className="detail-label">Weight</span>
-                        <span className="detail-value">
-                          {exercise.measurementValue !== undefined && exercise.measurementValue !== null
-                            ? `${exercise.measurementValue} ${exercise.measurementUnit || 'lbs'}`
-                            : `${exercise.resistance} lbs`}
-                        </span>
+                    </div>
+                  ) : (
+                    // View Mode
+                    <>
+                      <div className="exercise-header">
+                        <div className="drag-handle" title="Drag to reorder">⋮⋮</div>
+                        <h4 className="exercise-name">{exercise.name}</h4>
+                        <div className="exercise-actions">
+                          <button 
+                            className="edit-btn"
+                            onClick={() => startEditing(exercise)}
+                            aria-label="Edit exercise"
+                          >
+                            ✎
+                          </button>
+                          <button 
+                            className="delete-btn"
+                            onClick={() => handleDeleteExercise(exercise.id)}
+                            aria-label="Delete exercise"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
-                    )}
-                    
-                    {/* Show Assistance for assisted exercises */}
-                    {exercise.measurementType === 'assistance' && (
-                      <div className="detail">
-                        <span className="detail-label">Assistance</span>
-                        <span className="detail-value">-{exercise.measurementValue} {exercise.measurementUnit || 'lbs'}</span>
+                      <div className="exercise-details">
+                        {/* Show Sets only if not a time-based exercise */}
+                        {exercise.measurementType !== 'time' && exercise.sets && (
+                          <div className="detail">
+                            <span className="detail-label">Sets</span>
+                            <span className="detail-value">{exercise.sets}</span>
+                          </div>
+                        )}
+                        
+                        {/* Show Reps only if not a time-based exercise */}
+                        {exercise.measurementType !== 'time' && exercise.reps && (
+                          <div className="detail">
+                            <span className="detail-label">Reps</span>
+                            <span className="detail-value">
+                              {Array.isArray(exercise.reps) 
+                                ? exercise.reps.join(' / ') 
+                                : exercise.reps}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Show Duration for time-based exercises */}
+                        {exercise.measurementType === 'time' && (
+                          <div className="detail">
+                            <span className="detail-label">Duration</span>
+                            <span className="detail-value">{formatTimeDisplay(exercise.measurementValue)}</span>
+                          </div>
+                        )}
+                        
+                        {/* Show Weight for resistance exercises */}
+                        {(exercise.measurementType === 'resistance' || (!exercise.measurementType && exercise.resistance)) && (
+                          <div className="detail">
+                            <span className="detail-label">Weight</span>
+                            <span className="detail-value">
+                              {exercise.measurementValue !== undefined && exercise.measurementValue !== null
+                                ? `${exercise.measurementValue} ${exercise.measurementUnit || 'lbs'}`
+                                : `${exercise.resistance} lbs`}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Show Assistance for assisted exercises */}
+                        {exercise.measurementType === 'assistance' && (
+                          <div className="detail">
+                            <span className="detail-label">Assistance</span>
+                            <span className="detail-value">-{exercise.measurementValue} {exercise.measurementUnit || 'lbs'}</span>
+                          </div>
+                        )}
+                        
+                        {/* Show Distance for distance exercises */}
+                        {exercise.measurementType === 'distance' && (
+                          <div className="detail">
+                            <span className="detail-label">Distance</span>
+                            <span className="detail-value">{exercise.measurementValue} {exercise.measurementUnit || 'miles'}</span>
+                          </div>
+                        )}
+                        
+                        {/* Show Bodyweight indicator */}
+                        {exercise.measurementType === 'bodyweight' && (
+                          <div className="detail">
+                            <span className="detail-label">Type</span>
+                            <span className="detail-value bodyweight-badge">Bodyweight</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    
-                    {/* Show Distance for distance exercises */}
-                    {exercise.measurementType === 'distance' && (
-                      <div className="detail">
-                        <span className="detail-label">Distance</span>
-                        <span className="detail-value">{exercise.measurementValue} {exercise.measurementUnit || 'miles'}</span>
-                      </div>
-                    )}
-                    
-                    {/* Show Bodyweight indicator */}
-                    {exercise.measurementType === 'bodyweight' && (
-                      <div className="detail">
-                        <span className="detail-label">Type</span>
-                        <span className="detail-value bodyweight-badge">Bodyweight</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className="exercise-time">{exercise.localTimestamp || (exercise.timestamp?.toDate ? exercise.timestamp.toDate().toLocaleString() : '')}</span>
+                      <span className="exercise-time">{exercise.localTimestamp || (exercise.timestamp?.toDate ? exercise.timestamp.toDate().toLocaleString() : '')}</span>
+                    </>
+                  )}
                 </div>
               ))}
             </div>

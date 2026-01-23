@@ -7,6 +7,7 @@ function Nutrition() {
   const { currentUser } = useAuth()
   const [meals, setMeals] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [settings, setSettings] = useState({
     calorieGoal: 2000,
     proteinGoal: 150
@@ -51,7 +52,7 @@ function Nutrition() {
       protein: parseInt(protein) || 0,
       carbs: parseInt(carbs) || 0,
       fat: parseInt(fat) || 0,
-      date: new Date().toISOString().split('T')[0],
+      date: selectedDate,
       localTimestamp: new Date().toLocaleString()
     }
 
@@ -81,10 +82,28 @@ function Nutrition() {
     return <div className="nutrition-page"><p>Loading...</p></div>
   }
 
-  const today = new Date().toISOString().split('T')[0]
-  const todaysMeals = meals.filter(meal => meal.date === today)
+  // Date navigation helpers
+  const formatDisplayDate = (dateStr) => {
+    const date = new Date(dateStr + 'T00:00:00')
+    const today = new Date().toISOString().split('T')[0]
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    
+    if (dateStr === today) return 'Today'
+    if (dateStr === yesterday) return 'Yesterday'
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  }
 
-  const dailyTotals = todaysMeals.reduce(
+  const navigateDate = (direction) => {
+    const current = new Date(selectedDate + 'T00:00:00')
+    current.setDate(current.getDate() + direction)
+    setSelectedDate(current.toISOString().split('T')[0])
+  }
+
+  const isToday = selectedDate === new Date().toISOString().split('T')[0]
+
+  const selectedMeals = meals.filter(meal => meal.date === selectedDate)
+
+  const dailyTotals = selectedMeals.reduce(
     (totals, meal) => ({
       calories: totals.calories + meal.calories,
       protein: totals.protein + meal.protein,
@@ -98,8 +117,45 @@ function Nutrition() {
     <div className="nutrition-page">
       <h2 className="nutrition-title">Track Your Nutrition</h2>
       
+      {/* Date Navigation */}
+      <div className="date-navigation">
+        <button 
+          className="date-nav-btn" 
+          onClick={() => navigateDate(-1)}
+          aria-label="Previous day"
+        >
+          ‹
+        </button>
+        <div className="date-display">
+          <span className="date-label">{formatDisplayDate(selectedDate)}</span>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            max={new Date().toISOString().split('T')[0]}
+            className="date-input"
+          />
+        </div>
+        <button 
+          className="date-nav-btn" 
+          onClick={() => navigateDate(1)}
+          disabled={isToday}
+          aria-label="Next day"
+        >
+          ›
+        </button>
+        {!isToday && (
+          <button 
+            className="today-btn" 
+            onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+          >
+            Today
+          </button>
+        )}
+      </div>
+      
       <div className="daily-summary">
-        <h3 className="summary-title">Today's Progress</h3>
+        <h3 className="summary-title">{isToday ? "Today's" : formatDisplayDate(selectedDate) + "'s"} Progress</h3>
         <div className="goals-section">
           <div className="goal-item">
             <div className="goal-header">
@@ -234,13 +290,13 @@ function Nutrition() {
       </form>
 
       <div className="meals-list">
-        <h3 className="list-title">Today's Meals</h3>
+        <h3 className="list-title">{isToday ? "Today's" : formatDisplayDate(selectedDate) + "'s"} Meals</h3>
         
-        {todaysMeals.length === 0 ? (
-          <p className="empty-message">No meals logged yet. Start tracking your nutrition!</p>
+        {selectedMeals.length === 0 ? (
+          <p className="empty-message">No meals logged for this day. {isToday ? 'Start tracking your nutrition!' : 'Add meals or select another date.'}</p>
         ) : (
           <div className="meals-grid">
-            {todaysMeals.map((meal) => (
+            {selectedMeals.map((meal) => (
               <div key={meal.id} className="meal-card">
                 <div className="meal-header">
                   <h4 className="meal-name">{meal.name}</h4>

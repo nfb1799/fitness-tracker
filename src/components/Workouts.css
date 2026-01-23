@@ -8,8 +8,97 @@
 .workouts-title {
   font-size: 2rem;
   color: var(--text-primary);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   text-align: center;
+}
+
+/* Date Navigation */
+.date-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.date-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.date-nav-btn:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.date-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.date-display {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 140px;
+}
+
+.date-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.date-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.today-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #646cff, #535bf2);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.today-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(100, 108, 255, 0.4);
 }
 
 /* Form Styles */
@@ -145,6 +234,76 @@
   min-width: 25px;
 }
 
+/* Reps Per Set Styles */
+.reps-per-set-container {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.reps-per-set-label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.reps-per-set-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.rep-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.set-number {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rep-input {
+  width: 60px;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 1rem;
+  text-align: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rep-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.2);
+}
+
+.rep-input::placeholder {
+  color: var(--text-muted);
+}
+
+.reps-per-set-hint {
+  padding: 0.75rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
+  text-align: center;
+}
+
 .add-btn {
   width: 100%;
   padding: 0.875rem;
@@ -198,11 +357,23 @@
   padding: 1.25rem;
   border-radius: 12px;
   border: 1px solid var(--border-color);
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+  cursor: grab;
 }
 
 .exercise-card:hover {
   border-color: var(--accent-color);
+}
+
+.exercise-card.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.exercise-card.drag-over {
+  border-color: var(--accent-color);
+  border-style: dashed;
+  transform: scale(1.02);
 }
 
 .exercise-header {
@@ -210,6 +381,21 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1rem;
+  gap: 0.5rem;
+}
+
+.drag-handle {
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: grab;
+  padding: 0 0.25rem;
+  user-select: none;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.exercise-card:hover .drag-handle {
+  opacity: 1;
 }
 
 .exercise-name {
@@ -217,6 +403,26 @@
   color: var(--text-primary);
   margin: 0;
   font-weight: 600;
+  flex: 1;
+}
+
+.exercise-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.edit-btn:hover {
+  color: var(--accent-color);
 }
 
 .delete-btn {
@@ -232,6 +438,151 @@
 
 .delete-btn:hover {
   color: var(--danger-color);
+}
+
+/* Edit Form Styles */
+.exercise-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.edit-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.edit-form-group label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.edit-form-group input,
+.edit-form-group select {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.edit-form-group input:focus,
+.edit-form-group select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.edit-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.edit-reps-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 0.5rem;
+}
+
+.edit-reps-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.edit-rep-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.edit-rep-input-group span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.edit-rep-input-group input {
+  width: 50px;
+  padding: 0.35rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.edit-time-inputs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-time-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.edit-time-group input {
+  width: 50px;
+  padding: 0.35rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.edit-time-group span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.save-edit-btn {
+  flex: 1;
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #646cff, #535bf2);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.save-edit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(100, 108, 255, 0.4);
+}
+
+.cancel-edit-btn {
+  flex: 1;
+  padding: 0.5rem;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.cancel-edit-btn:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-secondary);
 }
 
 .exercise-details {
@@ -310,5 +661,13 @@
 
   .time-input-group input {
     width: 60px;
+  }
+
+  .reps-per-set-inputs {
+    justify-content: center;
+  }
+
+  .rep-input {
+    width: 55px;
   }
 }

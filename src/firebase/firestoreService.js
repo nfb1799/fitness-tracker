@@ -56,6 +56,20 @@ export async function deleteWorkout(userId, workoutId) {
   await deleteDoc(workoutRef)
 }
 
+export async function updateWorkout(userId, workoutId, updates) {
+  const workoutRef = doc(db, 'users', userId, 'workouts', workoutId)
+  await updateDoc(workoutRef, updates)
+}
+
+export async function updateWorkoutsOrder(userId, workoutUpdates) {
+  // Update multiple workouts' order field
+  const promises = workoutUpdates.map(({ id, order }) => {
+    const workoutRef = doc(db, 'users', userId, 'workouts', id)
+    return updateDoc(workoutRef, { order })
+  })
+  await Promise.all(promises)
+}
+
 export async function getWorkoutsByDate(userId, date) {
   const workoutsRef = collection(db, 'users', userId, 'workouts')
   const q = query(workoutsRef, where('date', '==', date))
