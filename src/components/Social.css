@@ -290,12 +290,129 @@
 /* Activity Footer */
 .activity-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .activity-date {
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+
+/* Clickable User Elements */
+.user-avatar.clickable,
+.user-name.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-avatar.clickable:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 2px var(--accent-color);
+}
+
+.user-name.clickable:hover {
+  color: var(--accent-color);
+}
+
+/* Reactions Section */
+.reactions-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.reaction-summary {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.reaction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-tertiary);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.reaction-badge:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+.reaction-badge.user-reacted {
+  background-color: rgba(100, 108, 255, 0.15);
+  border-color: var(--accent-color);
+}
+
+.reaction-picker-wrapper {
+  position: relative;
+}
+
+.add-reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.add-reaction-btn:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--accent-color);
+}
+
+.reaction-picker {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  margin-bottom: 0.5rem;
+}
+
+.reaction-option {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reaction-option:hover {
+  background-color: var(--bg-tertiary);
+  transform: scale(1.15);
+}
+
+.reaction-option.selected {
+  background-color: rgba(100, 108, 255, 0.15);
 }
 
 /* Responsive */

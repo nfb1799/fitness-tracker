@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './Nutrition.css'
 import { useAuth } from '../contexts/AuthContext'
-import { getNutrition, addNutritionEntry, deleteNutritionEntry, getUserSettings } from '../firebase/firestoreService'
+import { getNutrition, addNutritionEntry, deleteNutritionEntry, getUserSettings, getSavedMeals, saveMeal } from '../firebase/firestoreService'
 
 function Nutrition() {
   const { currentUser } = useAuth()
   const [meals, setMeals] = useState([])
+  const [savedMeals, setSavedMeals] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [settings, setSettings] = useState({
@@ -17,16 +18,22 @@ function Nutrition() {
   const [protein, setProtein] = useState('')
   const [carbs, setCarbs] = useState('')
   const [fat, setFat] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [filteredSuggestions, setFilteredSuggestions] = useState([])
+  const inputRef = useRef(null)
+  const suggestionsRef = useRef(null)
 
   useEffect(() => {
     const loadData = async () => {
       if (currentUser) {
         try {
-          const [nutritionData, userSettings] = await Promise.all([
+          const [nutritionData, userSettings, savedMealsData] = await Promise.all([
             getNutrition(currentUser.uid),
-            getUserSettings(currentUser.uid)
+            getUserSettings(currentUser.uid),
+            getSavedMeals(currentUser.uid)
           ])
           setMeals(nutritionData)
+          setSavedMeals(savedMealsData)
           if (userSettings) {
             setSettings(prev => ({ ...prev, ...userSettings }))
           }
@@ -38,6 +45,46 @@ function Nutrition() {
     }
     loadData()
   }, [currentUser])
+
+  // Handle clicks outside suggestions dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        suggestionsRef.current && 
+        !suggestionsRef.current.contains(event.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target)
+      ) {
+        setShowSuggestions(false)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Filter suggestions based on input
+  useEffect(() => {
+    if (foodName.trim().length > 0) {
+      const filtered = savedMeals.filter(meal => 
+        meal.displayName.toLowerCase().includes(foodName.toLowerCase())
+      ).slice(0, 8)
+      setFilteredSuggestions(filtered)
+      setShowSuggestions(filtered.length > 0)
+    } else {
+      setFilteredSuggestions([])
+      setShowSuggestions(false)
+    }
+  }, [foodName, savedMeals])
+
+  const handleSelectSuggestion = (meal) => {
+    setFoodName(meal.displayName)
+    setCalories(meal.calories.toString())
+    setProtein(meal.protein.toString())
+    setCarbs(meal.carbs.toString())
+    setFat(meal.fat.toString())
+    setShowSuggestions(false)
+  }
 
   const handleAddMeal = async (e) => {
     e.preventDefault()
@@ -59,6 +106,14 @@ function Nutrition() {
     try {
       const id = await addNutritionEntry(currentUser.uid, newMeal)
       setMeals([{ id, ...newMeal, timestamp: { toDate: () => new Date() } }, ...meals])
+      
+      // Save meal for future autocomplete
+      await saveMeal(currentUser.uid, newMeal)
+      
+      // Refresh saved meals list
+      const updatedSavedMeals = await getSavedMeals(currentUser.uid)
+      setSavedMeals(updatedSavedMeals)
+      
       setFoodName('')
       setCalories('')
       setProtein('')
@@ -221,15 +276,42 @@ function Nutrition() {
       </div>
 
       <form className="nutrition-form" onSubmit={handleAddMeal}>
-        <div className="form-group">
+        <div className="form-group food-input-group">
           <label htmlFor="food-name">Food Item</label>
-          <input
-            type="text"
-            id="food-name"
-            placeholder="e.g., Grilled Chicken, Rice..."
-            value={foodName}
-            onChange={(e) => setFoodName(e.target.value)}
-          />
+          <div className="autocomplete-wrapper">
+            <input
+              ref={inputRef}
+              type="text"
+              id="food-name"
+              placeholder="e.g., Grilled Chicken, Rice..."
+              value={foodName}
+              onChange={(e) => setFoodName(e.target.value)}
+              onFocus={() => {
+                if (filteredSuggestions.length > 0) setShowSuggestions(true)
+              }}
+              autoComplete="off"
+            />
+            {showSuggestions && (
+              <div className="suggestions-dropdown" ref={suggestionsRef}>
+                {filteredSuggestions.map((meal) => (
+                  <button
+                    key={meal.id}
+                    type="button"
+                    className="suggestion-item"
+                    onClick={() => handleSelectSuggestion(meal)}
+                  >
+                    <span className="suggestion-name">{meal.displayName}</span>
+                    <span className="suggestion-macros">
+                      {meal.calories} cal • {meal.protein}g P • {meal.carbs}g C • {meal.fat}g F
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {savedMeals.length > 0 && !showSuggestions && !foodName && (
+            <span className="input-hint">Start typing to see saved meals</span>
+          )}
         </div>
         
         <div className="form-row">
