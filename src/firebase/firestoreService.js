@@ -369,3 +369,192 @@ export async function getSocialFeed(limit = 50) {
 
   return allActivity.slice(0, limit)
 }
+
+// ============== User Profile Public Data ==============
+
+// Get full profile data for viewing another user's profile
+export async function getUserProfileData(userId) {
+  const userDoc = await getDoc(doc(db, 'users', userId))
+  if (!userDoc.exists()) return null
+
+  const userData = userDoc.data()
+  
+  // Get user's workouts
+  const workoutsRef = collection(db, 'users', userId, 'workouts')
+  const workoutsQuery = query(workoutsRef, orderBy('timestamp', 'desc'))
+  const workoutsSnapshot = await getDocs(workoutsQuery)
+  const workouts = workoutsSnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }))
+
+  // Get user's nutrition
+  const nutritionRef = collection(db, 'users', userId, 'nutrition')
+  const nutritionQuery = query(nutritionRef, orderBy('timestamp', 'desc'))
+  const nutritionSnapshot = await getDocs(nutritionQuery)
+  const nutrition = nutritionSnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }))
+
+  // Get user's weigh-ins
+  const weighInsRef = collection(db, 'users', userId, 'weighins')
+  const weighInsQuery = query(weighInsRef, orderBy('timestamp', 'desc'))
+  const weighInsSnapshot = await getDocs(weighInsQuery)
+  const weighIns = weighInsSnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }))
+
+  return {
+    userId,
+    displayName: userData.displayName || userData.settings?.name || 'Anonymous',
+    settings: userData.settings || {},
+    workouts,
+    nutrition,
+    weighIns
+  }
+}
+
+// ============== Profile Comments ==============
+
+export async function getProfileComments(userId) {
+  const commentsRef = collection(db, 'users', userId, 'profileComments')
+  const q = query(commentsRef, orderBy('timestamp', 'desc'))
+  const snapshot = await getDocs(q)
+  
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }))
+}
+
+export async function addProfileComment(profileUserId, comment) {
+  const commentsRef = collection(db, 'users', profileUserId, 'profileComments')
+  const docRef = await addDoc(commentsRef, {
+    ...comment,
+    timestamp: Timestamp.now()
+  })
+  return docRef.id
+}
+
+export async function deleteProfileComment(profileUserId, commentId) {
+  const commentRef = doc(db, 'users', profileUserId, 'profileComments', commentId)
+  await deleteDoc(commentRef)
+}
+
+// ============== Social Feed Reactions ==============
+
+export async function addReaction(activityId, reaction) {
+  const reactionsRef = collection(db, 'socialReactions')
+  // Check if user already reacted
+  const q = query(
+    reactionsRef,
+    where('activityId', '==', activityId),
+    where('userId', '==', reaction.userId)
+  )
+  const existing = await getDocs(q)
+  
+  if (!existing.empty) {
+    // Update existing reaction
+    const existingDoc = existing.docs[0]
+    if (existingDoc.data().emoji === reaction.emoji) {
+      // Same emoji - remove reaction
+      await deleteDoc(existingDoc.ref)
+      return { action: 'removed' }
+    } else {
+      // Different emoji - update
+      await updateDoc(existingDoc.ref, { emoji: reaction.emoji, timestamp: Timestamp.now() })
+      return { action: 'updated', id: existingDoc.id }
+    }
+  }
+  
+  // Add new reaction
+  const docRef = await addDoc(reactionsRef, {
+    ...reaction,
+    timestamp: Timestamp.now()
+  })
+  return { action: 'added', id: docRef.id }
+}
+
+export async function getReactions(activityIds) {
+  if (!activityIds || activityIds.length === 0) return {}
+  
+  const reactionsRef = collection(db, 'socialReactions')
+  const snapshot = await getDocs(reactionsRef)
+  
+  const reactionsByActivity = {}
+  snapshot.docs.forEach(doc => {
+    const data = doc.data()
+    if (activityIds.includes(data.activityId)) {
+      if (!reactionsByActivity[data.activityId]) {
+        reactionsByActivity[data.activityId] = []
+      }
+      reactionsByActivity[data.activityId].push({
+        id: doc.id,
+        ...data
+      })
+    }
+  })
+  
+  return reactionsByActivity
+}
+
+// ============== Saved Meals (for autocomplete) ==============
+
+export async function getSavedMeals(userId) {
+  const mealsRef = collection(db, 'users', userId, 'savedMeals')
+  const q = query(mealsRef, orderBy('useCount', 'desc'))
+  const snapshot = await getDocs(q)
+  
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }))
+}
+
+export async function saveMeal(userId, meal) {
+  const mealsRef = collection(db, 'users', userId, 'savedMeals')
+  
+  // Check if meal with same name exists
+  const q = query(mealsRef, where('name', '==', meal.name.toLowerCase().trim()))
+  const existing = await getDocs(q)
+  
+  if (!existing.empty) {
+    // Update use count
+    const existingDoc = existing.docs[0]
+    await updateDoc(existingDoc.ref, {
+      useCount: (existingDoc.data().useCount || 1) + 1,
+      lastUsed: Timestamp.now()
+    })
+    return existingDoc.id
+  }
+  
+  // Save new meal
+  const docRef = await addDoc(mealsRef, {
+    name: meal.name.toLowerCase().trim(),
+    displayName: meal.name.trim(),
+    calories: meal.calories,
+    protein: meal.protein,
+    carbs: meal.carbs,
+    fat: meal.fat,
+    useCount: 1,
+    createdAt: Timestamp.now(),
+    lastUsed: Timestamp.now()
+  })
+  return docRef.id
+}
+
+// ============== Get All Users (for profile browsing) ==============
+
+export async function getAllUsers() {
+  const usersSnapshot = await getDocs(collection(db, 'users'))
+  return usersSnapshot.docs.map(userDoc => {
+    const userData = userDoc.data()
+    return {
+      userId: userDoc.id,
+      displayName: userData.displayName || userData.settings?.name || 'Anonymous',
+      email: userData.email
+    }
+  })
+}

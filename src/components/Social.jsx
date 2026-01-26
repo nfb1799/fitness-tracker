@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import './Social.css'
 import { useAuth } from '../contexts/AuthContext'
-import { getSocialFeed } from '../firebase/firestoreService'
+import { getSocialFeed, addReaction, getReactions } from '../firebase/firestoreService'
+import UserProfile from './UserProfile'
+
+const REACTION_EMOJIS = ['👍', '💪', '🔥', '❤️', '👏', '🎉']
 
 function Social() {
   const { currentUser } = useAuth()
@@ -9,6 +12,9 @@ function Social() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all') // 'all', 'workouts', 'meals'
+  const [reactions, setReactions] = useState({})
+  const [showReactionPicker, setShowReactionPicker] = useState(null)
+  const [viewingProfile, setViewingProfile] = useState(null)
 
   useEffect(() => {
     const loadSocialFeed = async () => {
@@ -16,6 +22,13 @@ function Social() {
         setError(null)
         const feed = await getSocialFeed(100)
         setActivities(feed)
+        
+        // Load reactions for all activities
+        if (feed.length > 0) {
+          const activityIds = feed.map(a => a.id)
+          const reactionsData = await getReactions(activityIds)
+          setReactions(reactionsData)
+        }
       } catch (err) {
         console.error('Error loading social feed:', err)
         setError(err.message || 'Failed to load social feed')
@@ -24,6 +37,69 @@ function Social() {
     }
     loadSocialFeed()
   }, [])
+
+  const handleReaction = async (activityId, emoji) => {
+    if (!currentUser) return
+    
+    try {
+      const result = await addReaction(activityId, {
+        activityId,
+        userId: currentUser.uid,
+        userName: currentUser.displayName || currentUser.email,
+        emoji
+      })
+      
+      // Update local reactions state
+      setReactions(prev => {
+        const activityReactions = prev[activityId] || []
+        const existingIndex = activityReactions.findIndex(r => r.userId === currentUser.uid)
+        
+        if (result.action === 'removed') {
+          return {
+            ...prev,
+            [activityId]: activityReactions.filter(r => r.userId !== currentUser.uid)
+          }
+        } else if (result.action === 'updated') {
+          const updated = [...activityReactions]
+          updated[existingIndex] = { ...updated[existingIndex], emoji }
+          return { ...prev, [activityId]: updated }
+        } else {
+          return {
+            ...prev,
+            [activityId]: [...activityReactions, {
+              id: result.id,
+              userId: currentUser.uid,
+              userName: currentUser.displayName || currentUser.email,
+              emoji
+            }]
+          }
+        }
+      })
+    } catch (err) {
+      console.error('Error adding reaction:', err)
+    }
+    
+    setShowReactionPicker(null)
+  }
+
+  const getReactionSummary = (activityId) => {
+    const activityReactions = reactions[activityId] || []
+    const summary = {}
+    activityReactions.forEach(r => {
+      if (!summary[r.emoji]) summary[r.emoji] = []
+      summary[r.emoji].push(r.userName)
+    })
+    return summary
+  }
+
+  const getUserReaction = (activityId) => {
+    const activityReactions = reactions[activityId] || []
+    return activityReactions.find(r => r.userId === currentUser?.uid)?.emoji
+  }
+
+  const handleViewProfile = (userId) => {
+    setViewingProfile(userId)
+  }
 
   const filteredActivities = activities.filter(activity => {
     if (filter === 'all') return true
@@ -51,6 +127,16 @@ function Social() {
   const getInitials = (name) => {
     if (!name) return '?'
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  }
+
+  // If viewing a profile, show the profile component
+  if (viewingProfile) {
+    return (
+      <UserProfile 
+        userId={viewingProfile} 
+        onBack={() => setViewingProfile(null)} 
+      />
+    )
   }
 
   if (loading) {
@@ -118,11 +204,19 @@ function Social() {
               className={`activity-card ${activity.type} ${activity.userId === currentUser?.uid ? 'own-activity' : ''}`}
             >
               <div className="activity-header">
-                <div className="user-avatar">
+                <div 
+                  className="user-avatar clickable"
+                  onClick={() => handleViewProfile(activity.userId)}
+                  title={`View ${activity.displayName}'s profile`}
+                >
                   {getInitials(activity.displayName)}
                 </div>
                 <div className="activity-meta">
-                  <span className="user-name">
+                  <span 
+                    className="user-name clickable"
+                    onClick={() => handleViewProfile(activity.userId)}
+                    title={`View ${activity.displayName}'s profile`}
+                  >
                     {activity.displayName}
                     {activity.userId === currentUser?.uid && <span className="you-badge">You</span>}
                   </span>
@@ -174,6 +268,47 @@ function Social() {
               </div>
 
               <div className="activity-footer">
+                <div className="reactions-section">
+                  {/* Reaction summary */}
+                  <div className="reaction-summary">
+                    {Object.entries(getReactionSummary(activity.id)).map(([emoji, users]) => (
+                      <span 
+                        key={emoji} 
+                        className={`reaction-badge ${getUserReaction(activity.id) === emoji ? 'user-reacted' : ''}`}
+                        title={users.join(', ')}
+                        onClick={() => handleReaction(activity.id, emoji)}
+                      >
+                        {emoji} {users.length}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  {/* Add reaction button */}
+                  <div className="reaction-picker-wrapper">
+                    <button 
+                      className="add-reaction-btn"
+                      onClick={() => setShowReactionPicker(showReactionPicker === activity.id ? null : activity.id)}
+                      title="Add reaction"
+                    >
+                      {getUserReaction(activity.id) || '😀'} +
+                    </button>
+                    
+                    {showReactionPicker === activity.id && (
+                      <div className="reaction-picker">
+                        {REACTION_EMOJIS.map(emoji => (
+                          <button
+                            key={emoji}
+                            className={`reaction-option ${getUserReaction(activity.id) === emoji ? 'selected' : ''}`}
+                            onClick={() => handleReaction(activity.id, emoji)}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
                 <span className="activity-date">
                   📅 {activity.data.date || activity.data.localTimestamp?.split(',')[0]}
                 </span>
