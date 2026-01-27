@@ -131,9 +131,31 @@ function UserProfile({ userId, onBack }) {
 
     const workoutDays = new Set(weekExercises.map(ex => ex.date)).size
     const totalExercises = weekExercises.length
-    const totalVolume = weekExercises.reduce((sum, ex) => sum + (ex.reps * ex.resistance), 0)
-    const avgCalories = weekMeals.length > 0 
-      ? Math.round(weekMeals.reduce((sum, meal) => sum + meal.calories, 0) / 7)
+    
+    // Fix total volume calculation to handle arrays and different measurement types
+    const totalVolume = weekExercises.reduce((sum, ex) => {
+      if (ex.measurementType !== 'resistance' && ex.measurementType !== undefined && ex.measurementType !== 'assistance') {
+        return sum
+      }
+      
+      const reps = Array.isArray(ex.reps) ? ex.reps : (ex.reps ? [ex.reps] : [0])
+      const weights = Array.isArray(ex.measurementValue) 
+        ? ex.measurementValue 
+        : (ex.measurementValue ? Array(reps.length).fill(ex.measurementValue) : (ex.resistance ? Array(reps.length).fill(ex.resistance) : [0]))
+      
+      let exerciseVolume = 0
+      for (let i = 0; i < reps.length; i++) {
+        const setReps = parseInt(reps[i]) || 0
+        const setWeight = parseFloat(weights[i] || weights[0]) || 0
+        exerciseVolume += setReps * setWeight
+      }
+      return sum + exerciseVolume
+    }, 0)
+    
+    // Fix average calories - only count days that have entries
+    const daysWithMeals = new Set(weekMeals.map(meal => meal.date)).size
+    const avgCalories = daysWithMeals > 0 
+      ? Math.round(weekMeals.reduce((sum, meal) => sum + meal.calories, 0) / daysWithMeals)
       : 0
 
     return { workoutDays, totalExercises, totalVolume, avgCalories }
@@ -144,19 +166,28 @@ function UserProfile({ userId, onBack }) {
     const exercises = profile?.workouts || []
     
     exercises.forEach(ex => {
+      // Only track PRs for resistance exercises
+      if (ex.measurementType && ex.measurementType !== 'resistance') return
+      
       const key = ex.name.toLowerCase()
-      if (!recordsByExercise[key] || ex.resistance > recordsByExercise[key].resistance) {
+      const maxWeight = Array.isArray(ex.measurementValue) 
+        ? Math.max(...ex.measurementValue) 
+        : (ex.measurementValue || ex.resistance || 0)
+      
+      const currentRecord = recordsByExercise[key]
+      if (!currentRecord || maxWeight > currentRecord.weight) {
         recordsByExercise[key] = {
           name: ex.name,
-          resistance: ex.resistance,
-          reps: ex.reps,
+          weight: maxWeight,
+          unit: ex.measurementUnit || 'lbs',
+          reps: Array.isArray(ex.reps) ? ex.reps[0] : ex.reps,
           date: ex.date
         }
       }
     })
 
     return Object.values(recordsByExercise)
-      .sort((a, b) => b.resistance - a.resistance)
+      .sort((a, b) => b.weight - a.weight)
       .slice(0, 5)
   }
 
@@ -441,7 +472,7 @@ function UserProfile({ userId, onBack }) {
                     <span className="record-rank">#{i + 1}</span>
                     <div className="record-info">
                       <span className="record-name">{record.name}</span>
-                      <span className="record-weight">{record.resistance} lbs × {record.reps} reps</span>
+                      <span className="record-weight">{record.weight} {record.unit} × {record.reps} reps</span>
                     </div>
                   </div>
                 ))}

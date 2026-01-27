@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './Dashboard.css'
 import { useAuth } from '../contexts/AuthContext'
-import { getWorkouts, getNutrition, getUserSettings, getWeighIns } from '../firebase/firestoreService'
+import { getWorkouts, getNutrition, getUserSettings, getWeighIns, getProfileComments, addProfileComment, deleteProfileComment } from '../firebase/firestoreService'
 
 function Dashboard() {
   const { currentUser } = useAuth()
@@ -10,6 +10,8 @@ function Dashboard() {
   const [exercises, setExercises] = useState([])
   const [meals, setMeals] = useState([])
   const [weighIns, setWeighIns] = useState([])
+  const [comments, setComments] = useState([])
+  const [newComment, setNewComment] = useState('')
   const [loading, setLoading] = useState(true)
   const [activityDays, setActivityDays] = useState(7)
   const [settings, setSettings] = useState({
@@ -24,15 +26,17 @@ function Dashboard() {
     const loadData = async () => {
       if (currentUser) {
         try {
-          const [workoutsData, nutritionData, userSettings, weighInsData] = await Promise.all([
+          const [workoutsData, nutritionData, userSettings, weighInsData, commentsData] = await Promise.all([
             getWorkouts(currentUser.uid),
             getNutrition(currentUser.uid),
             getUserSettings(currentUser.uid),
-            getWeighIns(currentUser.uid)
+            getWeighIns(currentUser.uid),
+            getProfileComments(currentUser.uid)
           ])
           setExercises(workoutsData)
           setMeals(nutritionData)
           setWeighIns(weighInsData)
+          setComments(commentsData)
           if (userSettings) {
             setSettings(prev => ({ ...prev, ...userSettings }))
           }
@@ -104,12 +108,36 @@ function Dashboard() {
 
     const workoutDays = new Set(weekExercises.map(ex => ex.date)).size
     const totalExercises = weekExercises.length
-    const totalVolume = weekExercises.reduce((sum, ex) => sum + (ex.reps * ex.resistance), 0)
-    const avgCalories = weekMeals.length > 0 
-      ? Math.round(weekMeals.reduce((sum, meal) => sum + meal.calories, 0) / 7)
+    
+    // Fix total volume calculation to handle arrays and different measurement types
+    const totalVolume = weekExercises.reduce((sum, ex) => {
+      // Only calculate volume for resistance exercises
+      if (ex.measurementType !== 'resistance' && ex.measurementType !== undefined && ex.measurementType !== 'assistance') {
+        return sum
+      }
+      
+      const reps = Array.isArray(ex.reps) ? ex.reps : (ex.reps ? [ex.reps] : [0])
+      const weights = Array.isArray(ex.measurementValue) 
+        ? ex.measurementValue 
+        : (ex.measurementValue ? Array(reps.length).fill(ex.measurementValue) : (ex.resistance ? Array(reps.length).fill(ex.resistance) : [0]))
+      
+      // Sum up reps * weight for each set
+      let exerciseVolume = 0
+      for (let i = 0; i < reps.length; i++) {
+        const setReps = parseInt(reps[i]) || 0
+        const setWeight = parseFloat(weights[i] || weights[0]) || 0
+        exerciseVolume += setReps * setWeight
+      }
+      return sum + exerciseVolume
+    }, 0)
+    
+    // Fix average calories - only count days that have entries
+    const daysWithMeals = new Set(weekMeals.map(meal => meal.date)).size
+    const avgCalories = daysWithMeals > 0 
+      ? Math.round(weekMeals.reduce((sum, meal) => sum + meal.calories, 0) / daysWithMeals)
       : 0
-    const avgProtein = weekMeals.length > 0
-      ? Math.round(weekMeals.reduce((sum, meal) => sum + meal.protein, 0) / 7)
+    const avgProtein = daysWithMeals > 0
+      ? Math.round(weekMeals.reduce((sum, meal) => sum + meal.protein, 0) / daysWithMeals)
       : 0
 
     return { workoutDays, totalExercises, totalVolume, avgCalories, avgProtein }
@@ -120,19 +148,29 @@ function Dashboard() {
     const recordsByExercise = {}
     
     exercises.forEach(ex => {
+      // Only track PRs for resistance exercises
+      if (ex.measurementType && ex.measurementType !== 'resistance') return
+      
       const key = ex.name.toLowerCase()
-      if (!recordsByExercise[key] || ex.resistance > recordsByExercise[key].resistance) {
+      // Get the max weight from the exercise (could be array or single value)
+      const maxWeight = Array.isArray(ex.measurementValue) 
+        ? Math.max(...ex.measurementValue) 
+        : (ex.measurementValue || ex.resistance || 0)
+      
+      const currentRecord = recordsByExercise[key]
+      if (!currentRecord || maxWeight > currentRecord.weight) {
         recordsByExercise[key] = {
           name: ex.name,
-          resistance: ex.resistance,
-          reps: ex.reps,
+          weight: maxWeight,
+          unit: ex.measurementUnit || 'lbs',
+          reps: Array.isArray(ex.reps) ? ex.reps[0] : ex.reps,
           date: ex.date
         }
       }
     })
 
     return Object.values(recordsByExercise)
-      .sort((a, b) => b.resistance - a.resistance)
+      .sort((a, b) => b.weight - a.weight)
       .slice(0, 5)
   }
 
@@ -260,6 +298,34 @@ function Dashboard() {
       currentDate.getMonth() === selectedDate.getMonth() &&
       currentDate.getFullYear() === selectedDate.getFullYear()
     )
+  }
+
+  // Comment handlers
+  const handleAddComment = async (e) => {
+    e.preventDefault()
+    if (!newComment.trim()) return
+
+    try {
+      const comment = {
+        text: newComment.trim(),
+        authorId: currentUser.uid,
+        authorName: currentUser.displayName || currentUser.email
+      }
+      const id = await addProfileComment(currentUser.uid, comment)
+      setComments([{ id, ...comment, timestamp: { toDate: () => new Date() } }, ...comments])
+      setNewComment('')
+    } catch (error) {
+      console.error('Error adding comment:', error)
+    }
+  }
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await deleteProfileComment(currentUser.uid, commentId)
+      setComments(comments.filter(c => c.id !== commentId))
+    } catch (error) {
+      console.error('Error deleting comment:', error)
+    }
   }
 
   const { daysInMonth, firstDayOfMonth } = getDaysInMonth(currentDate)
@@ -463,7 +529,7 @@ function Dashboard() {
                 <span className="record-rank">#{i + 1}</span>
                 <div className="record-info">
                   <span className="record-name">{record.name}</span>
-                  <span className="record-weight">{record.resistance} lbs × {record.reps} reps</span>
+                  <span className="record-weight">{record.weight} {record.unit} × {record.reps} reps</span>
                 </div>
               </div>
             ))}
@@ -515,16 +581,28 @@ function Dashboard() {
               <p className="no-data">No exercises logged</p>
             ) : (
               <div className="exercise-list">
-                {selectedDayExercises.map(exercise => (
-                  <div key={exercise.id} className="exercise-item">
-                    <span className="exercise-name">{exercise.name}</span>
-                    <div className="exercise-stats">
-                      <span>{exercise.reps} reps</span>
-                      <span>•</span>
-                      <span>{exercise.resistance} lbs</span>
+                {selectedDayExercises.map(exercise => {
+                  const reps = Array.isArray(exercise.reps) ? exercise.reps.join('/') : exercise.reps
+                  const weight = Array.isArray(exercise.measurementValue) 
+                    ? exercise.measurementValue.join('/') 
+                    : (exercise.measurementValue || exercise.resistance || 0)
+                  const unit = exercise.measurementUnit || 'lbs'
+                  
+                  return (
+                    <div key={exercise.id} className="exercise-item">
+                      <span className="exercise-name">{exercise.name}</span>
+                      <div className="exercise-stats">
+                        {exercise.measurementType !== 'time' && <span>{reps} reps</span>}
+                        {exercise.measurementType === 'resistance' || !exercise.measurementType ? (
+                          <>
+                            <span>•</span>
+                            <span>{weight} {unit}</span>
+                          </>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -553,6 +631,49 @@ function Dashboard() {
               </>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Profile Comments Section */}
+      <div className="comments-section">
+        <h3 className="section-title">💬 Profile Comments</h3>
+        <form className="comment-form" onSubmit={handleAddComment}>
+          <input
+            type="text"
+            placeholder="Leave a comment on your profile..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            className="comment-input"
+          />
+          <button type="submit" className="comment-submit-btn" disabled={!newComment.trim()}>
+            Post
+          </button>
+        </form>
+        <div className="comments-list">
+          {comments.length === 0 ? (
+            <p className="no-comments">No comments yet. Be the first to leave a note!</p>
+          ) : (
+            comments.map(comment => (
+              <div key={comment.id} className="comment-card">
+                <div className="comment-header">
+                  <span className="comment-author">{comment.authorName}</span>
+                  <span className="comment-time">
+                    {comment.timestamp?.toDate ? comment.timestamp.toDate().toLocaleDateString() : ''}
+                  </span>
+                  {comment.authorId === currentUser?.uid && (
+                    <button
+                      className="comment-delete-btn"
+                      onClick={() => handleDeleteComment(comment.id)}
+                      aria-label="Delete comment"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <p className="comment-text">{comment.text}</p>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

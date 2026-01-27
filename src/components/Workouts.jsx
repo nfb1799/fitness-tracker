@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './Workouts.css'
 import { useAuth } from '../contexts/AuthContext'
 import { getWorkouts, addWorkout, deleteWorkout, updateWorkout, updateWorkoutsOrder } from '../firebase/firestoreService'
@@ -25,14 +25,23 @@ const formatTimeDisplay = (totalSeconds) => {
   return parts.join(' ')
 }
 
+// Helper to get local date string (YYYY-MM-DD format)
+const getLocalDateString = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function Workouts() {
   const { currentUser } = useAuth()
   const [exercises, setExercises] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString())
   const [exerciseName, setExerciseName] = useState('')
   const [sets, setSets] = useState('')
   const [repsPerSet, setRepsPerSet] = useState([]) // Array to hold reps for each set
+  const [weightsPerSet, setWeightsPerSet] = useState([]) // Array to hold weights for each set
   const [measurementType, setMeasurementType] = useState('resistance')
   const [measurementValue, setMeasurementValue] = useState('')
   // Time-specific state
@@ -55,6 +64,9 @@ function Workouts() {
   // Copy workout modal state
   const [showCopyModal, setShowCopyModal] = useState(false)
   const [copyFromDate, setCopyFromDate] = useState('')
+
+  // Date input ref for calendar picker
+  const dateInputRef = useRef(null)
 
   const currentMeasurement = MEASUREMENT_TYPES.find(m => m.value === measurementType)
 
@@ -98,7 +110,7 @@ function Workouts() {
     loadWorkouts()
   }, [currentUser])
 
-  // Update repsPerSet array when sets changes
+  // Update repsPerSet and weightsPerSet arrays when sets changes
   const handleSetsChange = (newSets) => {
     setSets(newSets)
     const numSets = parseInt(newSets) || 0
@@ -111,8 +123,16 @@ function Workouts() {
         }
         return newReps.slice(0, numSets)
       })
+      setWeightsPerSet(prev => {
+        const newWeights = [...prev]
+        while (newWeights.length < numSets) {
+          newWeights.push(prev[prev.length - 1] || measurementValue || '') // Copy last value or current measurement value
+        }
+        return newWeights.slice(0, numSets)
+      })
     } else {
       setRepsPerSet([])
+      setWeightsPerSet([])
     }
   }
 
@@ -122,6 +142,15 @@ function Workouts() {
       const newReps = [...prev]
       newReps[index] = value
       return newReps
+    })
+  }
+
+  // Update weight for a specific set
+  const handleWeightChange = (index, value) => {
+    setWeightsPerSet(prev => {
+      const newWeights = [...prev]
+      newWeights[index] = value
+      return newWeights
     })
   }
 
@@ -145,7 +174,11 @@ function Workouts() {
     if (needsSetsReps && (repsPerSet.length !== numSets || repsPerSet.some(r => !r || parseInt(r) <= 0))) {
       return
     }
-    if (needsValue && !measurementValue) {
+    if (needsValue && !measurementValue && weightsPerSet.length === 0) {
+      return
+    }
+    // If multiple sets, check that weights are filled in when needed
+    if (needsValue && numSets > 1 && weightsPerSet.some(w => !w || parseFloat(w) <= 0)) {
       return
     }
     if (needsTime && totalSeconds === 0) {
@@ -159,7 +192,12 @@ function Workouts() {
       finalValue = totalSeconds
       finalUnit = 'seconds'
     } else if (needsValue) {
-      finalValue = parseFloat(measurementValue)
+      // Use weightsPerSet array if multiple sets, otherwise single value
+      if (numSets > 1) {
+        finalValue = weightsPerSet.map(w => parseFloat(w))
+      } else {
+        finalValue = parseFloat(measurementValue)
+      }
     }
 
     // Convert repsPerSet to numbers
@@ -182,6 +220,7 @@ function Workouts() {
       setExerciseName('')
       setSets('')
       setRepsPerSet([])
+      setWeightsPerSet([])
       setMeasurementValue('')
       setTimeHours('')
       setTimeMinutes('')
@@ -218,13 +257,15 @@ function Workouts() {
   // Edit exercise functions
   const startEditing = (exercise) => {
     const totalSeconds = exercise.measurementType === 'time' ? exercise.measurementValue || 0 : 0
+    const isArrayValue = Array.isArray(exercise.measurementValue)
     setEditingExercise(exercise.id)
     setEditForm({
       name: exercise.name,
       sets: exercise.sets || '',
       repsPerSet: Array.isArray(exercise.reps) ? exercise.reps.map(String) : (exercise.reps ? [String(exercise.reps)] : []),
+      weightsPerSet: isArrayValue ? exercise.measurementValue.map(String) : [],
       measurementType: exercise.measurementType || 'resistance',
-      measurementValue: exercise.measurementType !== 'time' ? (exercise.measurementValue || '') : '',
+      measurementValue: exercise.measurementType !== 'time' && !isArrayValue ? (exercise.measurementValue || '') : '',
       timeHours: Math.floor(totalSeconds / 3600) || '',
       timeMinutes: Math.floor((totalSeconds % 3600) / 60) || '',
       timeSeconds: totalSeconds % 60 || ''
@@ -240,14 +281,19 @@ function Workouts() {
     setEditForm(prev => {
       const updated = { ...prev, [field]: value }
       
-      // Handle sets change to resize repsPerSet array
+      // Handle sets change to resize repsPerSet and weightsPerSet arrays
       if (field === 'sets') {
         const numSets = parseInt(value) || 0
         const newReps = [...(prev.repsPerSet || [])]
+        const newWeights = [...(prev.weightsPerSet || [])]
         while (newReps.length < numSets) {
           newReps.push(prev.repsPerSet?.[prev.repsPerSet.length - 1] || '')
         }
+        while (newWeights.length < numSets) {
+          newWeights.push(prev.weightsPerSet?.[prev.weightsPerSet.length - 1] || prev.measurementValue || '')
+        }
         updated.repsPerSet = newReps.slice(0, numSets)
+        updated.weightsPerSet = newWeights.slice(0, numSets)
       }
       
       return updated
@@ -262,12 +308,21 @@ function Workouts() {
     })
   }
 
+  const handleEditWeightChange = (index, value) => {
+    setEditForm(prev => {
+      const newWeights = [...(prev.weightsPerSet || [])]
+      newWeights[index] = value
+      return { ...prev, weightsPerSet: newWeights }
+    })
+  }
+
   const saveEdit = async () => {
     if (!editForm.name?.trim()) return
 
     const needsSetsReps = editForm.measurementType !== 'time'
     const needsValue = editForm.measurementType !== 'bodyweight' && editForm.measurementType !== 'time'
     const needsTime = editForm.measurementType === 'time'
+    const isResistanceType = editForm.measurementType === 'resistance' || editForm.measurementType === 'assistance'
     
     const numSets = parseInt(editForm.sets) || 0
     const totalSeconds = (parseInt(editForm.timeHours) || 0) * 3600 + 
@@ -277,7 +332,9 @@ function Workouts() {
     // Validation
     if (needsSetsReps && numSets === 0) return
     if (needsSetsReps && (editForm.repsPerSet?.length !== numSets || editForm.repsPerSet.some(r => !r || parseInt(r) <= 0))) return
-    if (needsValue && !editForm.measurementValue) return
+    // Only require measurementValue if single set, or weightsPerSet if multiple sets for resistance types
+    if (needsValue && numSets <= 1 && !editForm.measurementValue) return
+    if (needsValue && numSets > 1 && isResistanceType && editForm.weightsPerSet?.some(w => !w || parseFloat(w) <= 0)) return
     if (needsTime && totalSeconds === 0) return
 
     const measurementInfo = MEASUREMENT_TYPES.find(m => m.value === editForm.measurementType)
@@ -289,7 +346,12 @@ function Workouts() {
       finalValue = totalSeconds
       finalUnit = 'seconds'
     } else if (needsValue) {
-      finalValue = parseFloat(editForm.measurementValue)
+      // Use weightsPerSet if multiple sets and resistance type, otherwise single value
+      if (numSets > 1 && isResistanceType && editForm.weightsPerSet?.length > 0) {
+        finalValue = editForm.weightsPerSet.map(w => parseFloat(w))
+      } else {
+        finalValue = parseFloat(editForm.measurementValue)
+      }
     }
 
     const updates = {
@@ -461,8 +523,10 @@ function Workouts() {
   // Date navigation helpers
   const formatDisplayDate = (dateStr) => {
     const date = new Date(dateStr + 'T00:00:00')
-    const today = new Date().toISOString().split('T')[0]
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    const today = getLocalDateString()
+    const yesterdayDate = new Date()
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+    const yesterday = getLocalDateString(yesterdayDate)
     
     if (dateStr === today) return 'Today'
     if (dateStr === yesterday) return 'Yesterday'
@@ -472,10 +536,22 @@ function Workouts() {
   const navigateDate = (direction) => {
     const current = new Date(selectedDate + 'T00:00:00')
     current.setDate(current.getDate() + direction)
-    setSelectedDate(current.toISOString().split('T')[0])
+    setSelectedDate(getLocalDateString(current))
   }
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0]
+  const handleDateLabelClick = () => {
+    if (dateInputRef.current) {
+      try {
+        dateInputRef.current.showPicker()
+      } catch (e) {
+        // Fallback for browsers that don't support showPicker
+        dateInputRef.current.focus()
+        dateInputRef.current.click()
+      }
+    }
+  }
+
+  const isToday = selectedDate === getLocalDateString()
 
   return (
     <div className="workouts-page">
@@ -483,46 +559,53 @@ function Workouts() {
       
       {/* Date Navigation */}
       <div className="date-navigation">
-        <button 
-          className="date-nav-btn" 
-          onClick={() => navigateDate(-1)}
-          aria-label="Previous day"
-        >
-          ‹
-        </button>
-        <div className="date-display">
-          <span className="date-label">{formatDisplayDate(selectedDate)}</span>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            max={new Date().toISOString().split('T')[0]}
-            className="date-input"
-          />
+        <div className="date-nav-left">
+          {!isToday && (
+            <button 
+              className="today-btn" 
+              onClick={() => setSelectedDate(getLocalDateString())}
+            >
+              Today
+            </button>
+          )}
         </div>
-        <button 
-          className="date-nav-btn" 
-          onClick={() => navigateDate(1)}
-          disabled={isToday}
-          aria-label="Next day"
-        >
-          ›
-        </button>
-        {!isToday && (
+        <div className="date-nav-core">
           <button 
-            className="today-btn" 
-            onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+            className="date-nav-btn" 
+            onClick={() => navigateDate(-1)}
+            aria-label="Previous day"
           >
-            Today
+            ‹
           </button>
-        )}
-        <button 
-          className="copy-workout-btn"
-          onClick={() => setShowCopyModal(true)}
-          title="Copy workout from another day"
-        >
-          📋 Copy
-        </button>
+          <div className="date-display">
+            <span className="date-label" onClick={handleDateLabelClick}>{formatDisplayDate(selectedDate)}</span>
+            <input
+              ref={dateInputRef}
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              max={getLocalDateString()}
+              className="date-input"
+            />
+          </div>
+          <button 
+            className="date-nav-btn" 
+            onClick={() => navigateDate(1)}
+            disabled={isToday}
+            aria-label="Next day"
+          >
+            ›
+          </button>
+        </div>
+        <div className="date-nav-right">
+          <button 
+            className="copy-workout-btn"
+            onClick={() => setShowCopyModal(true)}
+            title="Copy workout from another day"
+          >
+            📋 Copy
+          </button>
+        </div>
       </div>
       
       {/* Copy Workout Modal */}
@@ -674,10 +757,10 @@ function Workouts() {
           </div>
         </div>
         
-        {/* Dynamic reps inputs for multiple sets */}
+        {/* Dynamic reps and weights inputs for multiple sets */}
         {measurementType !== 'time' && parseInt(sets) > 1 && (
           <div className="reps-per-set-container">
-            <label className="reps-per-set-label">Reps for each set</label>
+            <label className="reps-per-set-label">Reps {measurementType === 'resistance' || measurementType === 'assistance' ? '& Weight' : ''} for each set</label>
             <div className="reps-per-set-inputs">
               {Array.from({ length: parseInt(sets) || 0 }, (_, index) => (
                 <div key={index} className="rep-input-group">
@@ -689,7 +772,25 @@ function Workouts() {
                     value={repsPerSet[index] || ''}
                     onChange={(e) => handleRepsChange(index, e.target.value)}
                     className="rep-input"
+                    title="Reps"
                   />
+                  <span className="input-label-small">reps</span>
+                  {(measurementType === 'resistance' || measurementType === 'assistance') && (
+                    <>
+                      <span className="input-separator">@</span>
+                      <input
+                        type="number"
+                        placeholder={currentMeasurement.placeholder}
+                        min="0"
+                        step="0.5"
+                        value={weightsPerSet[index] || ''}
+                        onChange={(e) => handleWeightChange(index, e.target.value)}
+                        className="weight-input"
+                        title="Weight"
+                      />
+                      <span className="input-label-small">{currentMeasurement.unit}</span>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -741,6 +842,8 @@ function Workouts() {
         )}
         
         {measurementType !== 'bodyweight' && measurementType !== 'time' && (
+          parseInt(sets) <= 1 || (measurementType !== 'resistance' && measurementType !== 'assistance')
+        ) && (
           <div className="form-group">
             <label htmlFor="measurement-value">
               {currentMeasurement.label} {currentMeasurement.unit && `(${currentMeasurement.unit})`}
@@ -842,6 +945,7 @@ function Workouts() {
 
                       {editForm.measurementType !== 'time' && parseInt(editForm.sets) > 1 && (
                         <div className="edit-reps-container">
+                          <label className="edit-reps-label">Reps {(editForm.measurementType === 'resistance' || editForm.measurementType === 'assistance') ? '& Weight' : ''} per set</label>
                           {Array.from({ length: parseInt(editForm.sets) || 0 }, (_, index) => (
                             <div key={index} className="edit-rep-input-group">
                               <span>S{index + 1}</span>
@@ -850,7 +954,22 @@ function Workouts() {
                                 min="1"
                                 value={editForm.repsPerSet?.[index] || ''}
                                 onChange={(e) => handleEditRepsChange(index, e.target.value)}
+                                placeholder="reps"
                               />
+                              {(editForm.measurementType === 'resistance' || editForm.measurementType === 'assistance') && (
+                                <>
+                                  <span className="edit-separator">@</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={editForm.weightsPerSet?.[index] || ''}
+                                    onChange={(e) => handleEditWeightChange(index, e.target.value)}
+                                    placeholder={MEASUREMENT_TYPES.find(m => m.value === editForm.measurementType)?.placeholder}
+                                  />
+                                  <span className="edit-unit">{MEASUREMENT_TYPES.find(m => m.value === editForm.measurementType)?.unit}</span>
+                                </>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -895,6 +1014,8 @@ function Workouts() {
                       )}
 
                       {editForm.measurementType !== 'bodyweight' && editForm.measurementType !== 'time' && (
+                        parseInt(editForm.sets) <= 1 || (editForm.measurementType !== 'resistance' && editForm.measurementType !== 'assistance')
+                      ) && (
                         <div className="edit-form-group">
                           <label>
                             {MEASUREMENT_TYPES.find(m => m.value === editForm.measurementType)?.label || 'Value'}
@@ -977,7 +1098,9 @@ function Workouts() {
                             <span className="detail-label">Weight</span>
                             <span className="detail-value">
                               {exercise.measurementValue !== undefined && exercise.measurementValue !== null
-                                ? `${exercise.measurementValue} ${exercise.measurementUnit || 'lbs'}`
+                                ? Array.isArray(exercise.measurementValue)
+                                  ? exercise.measurementValue.map(w => `${w}`).join(' / ') + ` ${exercise.measurementUnit || 'lbs'}`
+                                  : `${exercise.measurementValue} ${exercise.measurementUnit || 'lbs'}`
                                 : `${exercise.resistance} lbs`}
                             </span>
                           </div>
@@ -987,7 +1110,11 @@ function Workouts() {
                         {exercise.measurementType === 'assistance' && (
                           <div className="detail">
                             <span className="detail-label">Assistance</span>
-                            <span className="detail-value">-{exercise.measurementValue} {exercise.measurementUnit || 'lbs'}</span>
+                            <span className="detail-value">
+                              {Array.isArray(exercise.measurementValue)
+                                ? exercise.measurementValue.map(w => `-${w}`).join(' / ') + ` ${exercise.measurementUnit || 'lbs'}`
+                                : `-${exercise.measurementValue} ${exercise.measurementUnit || 'lbs'}`}
+                            </span>
                           </div>
                         )}
                         

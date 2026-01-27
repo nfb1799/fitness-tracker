@@ -108,6 +108,11 @@ export async function deleteNutritionEntry(userId, entryId) {
   await deleteDoc(entryRef)
 }
 
+export async function updateNutritionEntry(userId, entryId, updates) {
+  const entryRef = doc(db, 'users', userId, 'nutrition', entryId)
+  await updateDoc(entryRef, updates)
+}
+
 export async function getNutritionByDate(userId, date) {
   const nutritionRef = collection(db, 'users', userId, 'nutrition')
   const q = query(nutritionRef, where('date', '==', date))
