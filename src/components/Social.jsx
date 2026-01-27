@@ -232,14 +232,56 @@ function Social() {
                   <div className="workout-activity">
                     <h4 className="activity-name">{activity.data.name}</h4>
                     <div className="workout-stats">
-                      <div className="stat-item">
-                        <span className="stat-value">{activity.data.reps}</span>
-                        <span className="stat-label">Reps</span>
-                      </div>
-                      <div className="stat-item">
-                        <span className="stat-value">{activity.data.resistance}</span>
-                        <span className="stat-label">lbs</span>
-                      </div>
+                      {activity.data.measurementType !== 'time' && (
+                        <div className="stat-item">
+                          <span className="stat-value">
+                            {Array.isArray(activity.data.reps) 
+                              ? activity.data.reps.join('/') 
+                              : activity.data.reps}
+                          </span>
+                          <span className="stat-label">Reps</span>
+                        </div>
+                      )}
+                      {(activity.data.measurementType === 'resistance' || !activity.data.measurementType || activity.data.measurementType === 'assistance') && (
+                        <div className="stat-item">
+                          <span className="stat-value">
+                            {Array.isArray(activity.data.measurementValue)
+                              ? activity.data.measurementValue.join('/')
+                              : (activity.data.measurementValue || activity.data.resistance || 0)}
+                          </span>
+                          <span className="stat-label">{activity.data.measurementUnit || 'lbs'}</span>
+                        </div>
+                      )}
+                      {activity.data.measurementType === 'time' && (
+                        <div className="stat-item">
+                          <span className="stat-value">
+                            {(() => {
+                              const totalSeconds = activity.data.measurementValue || 0
+                              const hours = Math.floor(totalSeconds / 3600)
+                              const minutes = Math.floor((totalSeconds % 3600) / 60)
+                              const seconds = totalSeconds % 60
+                              const parts = []
+                              if (hours > 0) parts.push(`${hours}h`)
+                              if (minutes > 0) parts.push(`${minutes}m`)
+                              if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`)
+                              return parts.join(' ')
+                            })()}
+                          </span>
+                          <span className="stat-label">Duration</span>
+                        </div>
+                      )}
+                      {activity.data.measurementType === 'distance' && (
+                        <div className="stat-item">
+                          <span className="stat-value">{activity.data.measurementValue}</span>
+                          <span className="stat-label">{activity.data.measurementUnit || 'miles'}</span>
+                        </div>
+                      )}
+                      {activity.data.measurementType === 'bodyweight' && (
+                        <div className="stat-item">
+                          <span className="stat-value">BW</span>
+                          <span className="stat-label">Bodyweight</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (

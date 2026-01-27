@@ -63,6 +63,12 @@
   font-weight: 600;
   color: var(--text-primary);
   cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+
+.date-label:hover {
+  color: var(--accent-color);
 }
 
 .date-input {
@@ -73,6 +79,7 @@
   height: 100%;
   opacity: 0;
   cursor: pointer;
+  z-index: 1;
 }
 
 .date-input::-webkit-calendar-picker-indicator {
@@ -432,6 +439,27 @@
   font-weight: 600;
 }
 
+.meal-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.25rem;
+  transition: color 0.2s ease;
+}
+
+.edit-btn:hover {
+  color: var(--accent-color);
+}
+
 .delete-btn {
   background: transparent;
   border: none;
@@ -445,6 +473,85 @@
 
 .delete-btn:hover {
   color: var(--danger-color);
+}
+
+/* Meal Edit Form */
+.meal-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.meal-edit-form .edit-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.meal-edit-form .edit-form-group label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.meal-edit-form .edit-form-group input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.meal-edit-form .edit-form-group input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.meal-edit-form .edit-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.meal-edit-form .edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.meal-edit-form .save-edit-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.meal-edit-form .save-edit-btn:hover {
+  transform: translateY(-1px);
+}
+
+.meal-edit-form .cancel-edit-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.meal-edit-form .cancel-edit-btn:hover {
+  border-color: var(--text-muted);
 }
 
 .meal-macros {
