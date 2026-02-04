@@ -238,8 +238,6 @@ function Nutrition() {
 
   return (
     <div className="nutrition-page">
-      <h2 className="nutrition-title">Track Your Nutrition</h2>
-      
       {/* Date Navigation */}
       <div className="date-navigation">
         <button 

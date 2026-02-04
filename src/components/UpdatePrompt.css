@@ -1,0 +1,235 @@
+.update-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 1rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.update-modal {
+  background: var(--color-surface, #1a1a2e);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.update-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  background: linear-gradient(135deg, #646cff, #5a5fd6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(100, 108, 255, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 15px rgba(100, 108, 255, 0);
+  }
+}
+
+.update-icon svg {
+  width: 40px;
+  height: 40px;
+  color: white;
+}
+
+.update-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: var(--color-text, #ffffff);
+}
+
+.update-message {
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+  margin: 0 0 0.5rem;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.update-instruction {
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+  margin: 0 0 1.5rem;
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+.update-button {
+  width: 100%;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #646cff, #5a5fd6);
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 56px;
+}
+
+.update-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a5fd6, #4f54c9);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(100, 108, 255, 0.3);
+}
+
+.update-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.update-button:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.update-btn-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.update-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.update-note {
+  margin: 1rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+}
+
+/* Light theme support */
+[data-theme="light"] .update-modal {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .update-title {
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .update-message {
+  color: #4a4a6a;
+}
+
+[data-theme="light"] .update-instruction {
+  color: #6a6a8a;
+}
+
+[data-theme="light"] .update-note {
+  color: #8a8aaa;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .update-modal {
+    padding: 1.5rem;
+    margin: 1rem;
+    border-radius: 1rem;
+  }
+
+  .update-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 1rem;
+  }
+
+  .update-icon svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .update-title {
+    font-size: 1.25rem;
+  }
+
+  .update-message,
+  .update-instruction {
+    font-size: 0.9rem;
+  }
+
+  .update-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+}
+
+/* PWA standalone mode adjustments */
+@media (display-mode: standalone) {
+  .update-modal-overlay {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .update-modal-overlay,
+  .update-modal,
+  .update-icon {
+    animation: none;
+  }
+  
+  .update-button {
+    transition: none;
+  }
+}

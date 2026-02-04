@@ -6,6 +6,7 @@ import Nutrition from './components/Nutrition'
 import WeighIns from './components/WeighIns'
 import Settings from './components/Settings'
 import Social from './components/Social'
+import Analytics from './components/Analytics'
 import Auth from './components/Auth'
 import OfflineIndicator from './components/OfflineIndicator'
 import { useAuth } from './contexts/AuthContext'
@@ -13,6 +14,7 @@ import { useAuth } from './contexts/AuthContext'
 function App() {
   const { currentUser, logout, userProfile } = useAuth()
   const [currentPage, setCurrentPage] = useState('dashboard')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('theme')
     return saved || 'light'
@@ -47,6 +49,8 @@ function App() {
         return <WeighIns />
       case 'social':
         return <Social />
+      case 'analytics':
+        return <Analytics />
       case 'settings':
         return <Settings />
       default:
@@ -58,10 +62,26 @@ function App() {
     try {
       await logout()
       setCurrentPage('dashboard')
+      setMobileMenuOpen(false)
     } catch (error) {
       console.error('Logout error:', error)
     }
   }
+
+  const handleNavClick = (page) => {
+    setCurrentPage(page)
+    setMobileMenuOpen(false)
+  }
+
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'workouts', label: 'Workouts', icon: '💪' },
+    { id: 'nutrition', label: 'Nutrition', icon: '🍎' },
+    { id: 'weighins', label: 'Weigh-Ins', icon: '⚖️' },
+    { id: 'analytics', label: 'Analytics', icon: '📈' },
+    { id: 'social', label: 'Social', icon: '👥' },
+    { id: 'settings', label: 'Settings', icon: '⚙️' },
+  ]
 
   // Show auth screen if not logged in
   if (!currentUser) {
@@ -71,51 +91,37 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1 className="header-title">Fitness Tracker</h1>
-        <nav className="nav">
-          <button 
-            className={`nav-btn ${currentPage === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('dashboard')}
-          >
-            Dashboard
-          </button>
-          <button 
-            className={`nav-btn ${currentPage === 'workouts' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('workouts')}
-          >
-            Workouts
-          </button>
-          <button 
-            className={`nav-btn ${currentPage === 'nutrition' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('nutrition')}
-          >
-            Nutrition
-          </button>
-          <button 
-            className={`nav-btn ${currentPage === 'weighins' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('weighins')}
-          >
-            Weigh-Ins
-          </button>
-          <button 
-            className={`nav-btn ${currentPage === 'social' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('social')}
-          >
-            Social
-          </button>
-          <button 
-            className={`nav-btn ${currentPage === 'settings' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('settings')}
-          >
-            Settings
+        <div className="header-left">
+          <h1 className="header-title">💪 FitTrack</h1>
+        </div>
+
+        <button 
+          className={`mobile-menu-btn ${mobileMenuOpen ? 'open' : ''}`}
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        <nav className={`nav ${mobileMenuOpen ? 'open' : ''}`}>
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              className={`nav-btn ${currentPage === item.id ? 'active' : ''}`}
+              onClick={() => handleNavClick(item.id)}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-label">{item.label}</span>
+            </button>
+          ))}
+          <div className="nav-divider"></div>
+          <button className="nav-btn logout" onClick={handleLogout}>
+            <span className="nav-icon">🚪</span>
+            <span className="nav-label">Logout</span>
           </button>
         </nav>
-        <div className="user-menu">
-          <span className="user-name">{currentUser.displayName || currentUser.email}</span>
-          <button className="logout-btn" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
       </header>
 
       <main className="main-content">

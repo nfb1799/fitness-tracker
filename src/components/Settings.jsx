@@ -195,8 +195,6 @@ function Settings() {
 
   return (
     <div className="settings-page">
-      <h2 className="settings-title">Settings</h2>
-
       {saveMessage && (
         <div className="save-message">{saveMessage}</div>
       )}

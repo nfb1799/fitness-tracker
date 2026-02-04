@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import './WeighIns.css'
 import { useAuth } from '../contexts/AuthContext'
 import { getWeighIns, addWeighIn, deleteWeighIn, getUserSettings, updateUserSettings } from '../firebase/firestoreService'
@@ -14,7 +14,6 @@ function WeighIns() {
   const [weightUnit, setWeightUnit] = useState('lbs')
   const [targetWeight, setTargetWeight] = useState(null)
   const [startWeight, setStartWeight] = useState(null)
-  const canvasRef = useRef(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -43,159 +42,6 @@ function WeighIns() {
     }
     loadData()
   }, [currentUser])
-
-  // Draw the chart whenever weighIns changes
-  useEffect(() => {
-    if (weighIns.length > 0 && canvasRef.current) {
-      drawChart()
-    }
-  }, [weighIns])
-
-  const drawChart = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    const dpr = window.devicePixelRatio || 1
-    const rect = canvas.getBoundingClientRect()
-
-    // Set canvas size accounting for device pixel ratio
-    canvas.width = rect.width * dpr
-    canvas.height = rect.height * dpr
-    ctx.scale(dpr, dpr)
-
-    // Clear canvas
-    ctx.clearRect(0, 0, rect.width, rect.height)
-
-    // Sort data by date (oldest first for the chart)
-    const sortedData = [...weighIns].sort((a, b) => {
-      const dateA = new Date(a.date)
-      const dateB = new Date(b.date)
-      return dateA - dateB
-    })
-
-    // Only show last 30 entries for readability
-    const chartData = sortedData.slice(-30)
-
-    if (chartData.length < 2) {
-      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim()
-      ctx.font = '14px system-ui'
-      ctx.textAlign = 'center'
-      ctx.fillText('Add at least 2 weigh-ins to see the chart', rect.width / 2, rect.height / 2)
-      return
-    }
-
-    const padding = { top: 30, right: 20, bottom: 50, left: 60 }
-    const chartWidth = rect.width - padding.left - padding.right
-    const chartHeight = rect.height - padding.top - padding.bottom
-
-    // Get min/max weights with some padding
-    const weights = chartData.map(w => w.weight)
-    const minWeight = Math.min(...weights) - 2
-    const maxWeight = Math.max(...weights) + 2
-
-    // Scale functions
-    const xScale = (i) => padding.left + (i / (chartData.length - 1)) * chartWidth
-    const yScale = (w) => padding.top + chartHeight - ((w - minWeight) / (maxWeight - minWeight)) * chartHeight
-
-    // Get theme colors
-    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || '#646cff'
-    const textMuted = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#666'
-    const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim() || '#333'
-
-    // Draw grid lines
-    ctx.strokeStyle = borderColor
-    ctx.lineWidth = 0.5
-    const gridLines = 5
-    for (let i = 0; i <= gridLines; i++) {
-      const y = padding.top + (i / gridLines) * chartHeight
-      ctx.beginPath()
-      ctx.moveTo(padding.left, y)
-      ctx.lineTo(rect.width - padding.right, y)
-      ctx.stroke()
-
-      // Y-axis labels
-      const weightLabel = maxWeight - (i / gridLines) * (maxWeight - minWeight)
-      ctx.fillStyle = textMuted
-      ctx.font = '12px system-ui'
-      ctx.textAlign = 'right'
-      ctx.fillText(weightLabel.toFixed(1), padding.left - 10, y + 4)
-    }
-
-    // Draw the line
-    ctx.beginPath()
-    ctx.strokeStyle = accentColor
-    ctx.lineWidth = 2
-    ctx.lineJoin = 'round'
-    ctx.lineCap = 'round'
-
-    chartData.forEach((entry, i) => {
-      const x = xScale(i)
-      const y = yScale(entry.weight)
-      if (i === 0) {
-        ctx.moveTo(x, y)
-      } else {
-        ctx.lineTo(x, y)
-      }
-    })
-    ctx.stroke()
-
-    // Draw gradient fill under line
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight)
-    gradient.addColorStop(0, `${accentColor}40`)
-    gradient.addColorStop(1, `${accentColor}05`)
-
-    ctx.beginPath()
-    chartData.forEach((entry, i) => {
-      const x = xScale(i)
-      const y = yScale(entry.weight)
-      if (i === 0) {
-        ctx.moveTo(x, y)
-      } else {
-        ctx.lineTo(x, y)
-      }
-    })
-    ctx.lineTo(xScale(chartData.length - 1), padding.top + chartHeight)
-    ctx.lineTo(xScale(0), padding.top + chartHeight)
-    ctx.closePath()
-    ctx.fillStyle = gradient
-    ctx.fill()
-
-    // Draw data points
-    chartData.forEach((entry, i) => {
-      const x = xScale(i)
-      const y = yScale(entry.weight)
-
-      ctx.beginPath()
-      ctx.arc(x, y, 4, 0, Math.PI * 2)
-      ctx.fillStyle = accentColor
-      ctx.fill()
-      ctx.strokeStyle = '#fff'
-      ctx.lineWidth = 2
-      ctx.stroke()
-    })
-
-    // Draw X-axis labels (show first, last, and middle dates)
-    ctx.fillStyle = textMuted
-    ctx.font = '11px system-ui'
-    ctx.textAlign = 'center'
-
-    const labelIndices = [0, Math.floor(chartData.length / 2), chartData.length - 1]
-    labelIndices.forEach(i => {
-      if (i < chartData.length) {
-        const x = xScale(i)
-        const date = new Date(chartData[i].date)
-        const label = `${date.getMonth() + 1}/${date.getDate()}`
-        ctx.fillText(label, x, rect.height - padding.bottom + 20)
-      }
-    })
-
-    // Title
-    ctx.fillStyle = textMuted
-    ctx.font = '12px system-ui'
-    ctx.textAlign = 'left'
-    ctx.fillText(`Weight (${weightUnit})`, padding.left, 15)
-  }
 
   const handleAddWeighIn = async (e) => {
     e.preventDefault()
@@ -244,22 +90,6 @@ function WeighIns() {
     }
   }
 
-  const getWeightTrend = () => {
-    if (weighIns.length < 2) return null
-
-    const sorted = [...weighIns].sort((a, b) => new Date(b.date) - new Date(a.date))
-    const recent = sorted.slice(0, 7) // Last 7 weigh-ins
-    
-    if (recent.length < 2) return null
-
-    const avgRecent = recent.reduce((sum, w) => sum + w.weight, 0) / recent.length
-    const oldest = recent[recent.length - 1].weight
-    const diff = avgRecent - oldest
-
-    if (Math.abs(diff) < 0.5) return { trend: 'stable', diff: 0 }
-    return { trend: diff > 0 ? 'up' : 'down', diff: diff.toFixed(1) }
-  }
-
   const getWeightProgress = () => {
     if (!targetWeight || weighIns.length === 0) return null
     
@@ -301,7 +131,6 @@ function WeighIns() {
     }
   }
 
-  const trend = getWeightTrend()
   const weightProgress = getWeightProgress()
 
   if (loading) {
@@ -310,8 +139,6 @@ function WeighIns() {
 
   return (
     <div className="weighins-page">
-      <h2 className="weighins-title">Weight Tracking</h2>
-
       {/* Privacy Toggle */}
       <div className="privacy-section">
         <div className="privacy-toggle">
@@ -356,21 +183,6 @@ function WeighIns() {
           <p className="progress-percent">{Math.round(weightProgress.progress)}% complete</p>
         </div>
       )}
-
-      {/* Chart Section */}
-      <div className="chart-section">
-        <h3 className="section-title">Weight Over Time</h3>
-        {trend && (
-          <div className={`trend-indicator ${trend.trend}`}>
-            {trend.trend === 'up' && `↗️ Trending up ${trend.diff} ${weightUnit}`}
-            {trend.trend === 'down' && `↘️ Trending down ${Math.abs(trend.diff)} ${weightUnit}`}
-            {trend.trend === 'stable' && '➡️ Weight stable'}
-          </div>
-        )}
-        <div className="chart-container">
-          <canvas ref={canvasRef} className="weight-chart"></canvas>
-        </div>
-      </div>
 
       {/* Add Weigh-In Form */}
       <form className="weighin-form" onSubmit={handleAddWeighIn}>
