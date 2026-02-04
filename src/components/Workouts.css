@@ -190,7 +190,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 300px;
+  max-height: 350px;
   margin-bottom: 1rem;
 }
 
@@ -198,6 +198,11 @@
   color: var(--text-muted);
   text-align: center;
   padding: 2rem;
+}
+
+.copy-date-wrapper {
+  display: flex;
+  flex-direction: column;
 }
 
 .copy-date-option {
@@ -211,6 +216,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
+  width: 100%;
 }
 
 .copy-date-option:hover {
@@ -220,6 +226,21 @@
 .copy-date-option.selected {
   border-color: var(--accent-color);
   background: rgba(100, 108, 255, 0.1);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.copy-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.copy-date-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .copy-date-label {
@@ -230,6 +251,51 @@
 .copy-date-detail {
   color: var(--text-muted);
   font-size: 0.8rem;
+}
+
+.copy-date-chevron {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  transition: transform 0.2s ease;
+}
+
+.copy-date-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.copy-exercises-preview {
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-color);
+  border-top: none;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.copy-exercise-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  gap: 0.5rem;
+}
+
+.copy-exercise-name {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.copy-exercise-details {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-align: right;
 }
 
 .modal-actions {

@@ -164,11 +164,6 @@ function Social() {
 
   return (
     <div className="social-page">
-      <div className="social-header">
-        <h2 className="social-title">Community Feed</h2>
-        <p className="social-subtitle">See what others are doing to stay fit!</p>
-      </div>
-
       <div className="filter-tabs">
         <button 
           className={`filter-tab ${filter === 'all' ? 'active' : ''}`}

@@ -446,10 +446,20 @@ function Workouts() {
   const selectSavedExercise = (savedEx) => {
     setExerciseName(savedEx.name)
     setMeasurementType(savedEx.measurementType || 'resistance')
-    setMeasurementValue(savedEx.measurementValue || '')
+    
+    // Handle measurement value - could be array (weights per set) or single value
+    if (Array.isArray(savedEx.measurementValue)) {
+      setWeightsPerSet(savedEx.measurementValue.map(String))
+      setMeasurementValue(String(savedEx.measurementValue[0]) || '')
+    } else {
+      setMeasurementValue(savedEx.measurementValue ? String(savedEx.measurementValue) : '')
+      setWeightsPerSet([])
+    }
     
     if (savedEx.measurementType === 'time' && savedEx.measurementValue) {
-      const totalSeconds = savedEx.measurementValue
+      const totalSeconds = Array.isArray(savedEx.measurementValue) 
+        ? savedEx.measurementValue[0] 
+        : savedEx.measurementValue
       setTimeHours(Math.floor(totalSeconds / 3600) || '')
       setTimeMinutes(Math.floor((totalSeconds % 3600) / 60) || '')
       setTimeSeconds(totalSeconds % 60 || '')
@@ -491,7 +501,8 @@ function Workouts() {
 
     try {
       const newExercises = []
-      for (const ex of exercisesToCopy) {
+      for (let i = 0; i < exercisesToCopy.length; i++) {
+        const ex = exercisesToCopy[i]
         const newExercise = {
           name: ex.name,
           sets: ex.sets,
@@ -501,7 +512,7 @@ function Workouts() {
           measurementUnit: ex.measurementUnit,
           date: selectedDate,
           localTimestamp: new Date().toLocaleString(),
-          order: ex.order
+          order: ex.order ?? i
         }
         
         const id = await addWorkout(currentUser.uid, newExercise)
@@ -555,8 +566,6 @@ function Workouts() {
 
   return (
     <div className="workouts-page">
-      <h2 className="workouts-title">Log Your Workout</h2>
-      
       {/* Date Navigation */}
       <div className="date-navigation">
         <div className="date-nav-left">
@@ -599,6 +608,7 @@ function Workouts() {
         </div>
         <div className="date-nav-right">
           <button 
+            type="button"
             className="copy-workout-btn"
             onClick={() => setShowCopyModal(true)}
             title="Copy workout from another day"
@@ -620,16 +630,53 @@ function Workouts() {
                 <p className="empty-dates">No previous workouts found</p>
               ) : (
                 getDatesWithWorkouts().map(date => {
-                  const exerciseCount = exercises.filter(ex => ex.date === date).length
+                  const dateExercises = exercises.filter(ex => ex.date === date)
+                  const isSelected = copyFromDate === date
                   return (
-                    <button
-                      key={date}
-                      className={`copy-date-option ${copyFromDate === date ? 'selected' : ''}`}
-                      onClick={() => setCopyFromDate(date)}
-                    >
-                      <span className="copy-date-label">{formatDisplayDate(date)}</span>
-                      <span className="copy-date-detail">{date} • {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}</span>
-                    </button>
+                    <div key={date} className="copy-date-wrapper">
+                      <button
+                        type="button"
+                        className={`copy-date-option ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setCopyFromDate(isSelected ? '' : date)}
+                      >
+                        <div className="copy-date-header">
+                          <div className="copy-date-info">
+                            <span className="copy-date-label">{formatDisplayDate(date)}</span>
+                            <span className="copy-date-detail">{date} • {dateExercises.length} exercise{dateExercises.length !== 1 ? 's' : ''}</span>
+                          </div>
+                          <span className={`copy-date-chevron ${isSelected ? 'expanded' : ''}`}>▼</span>
+                        </div>
+                      </button>
+                      {isSelected && dateExercises.length > 0 && (
+                        <div className="copy-exercises-preview">
+                          {dateExercises.map((ex, idx) => {
+                            // Format reps - could be array or single value
+                            const repsDisplay = Array.isArray(ex.reps) 
+                              ? (ex.reps.every(r => r === ex.reps[0]) ? ex.reps[0] : ex.reps.join('/'))
+                              : ex.reps
+                            // Format weight/value - could be array or single value
+                            const valueDisplay = Array.isArray(ex.measurementValue)
+                              ? (ex.measurementValue.every(v => v === ex.measurementValue[0]) ? ex.measurementValue[0] : ex.measurementValue.join('/'))
+                              : ex.measurementValue
+                            
+                            return (
+                              <div key={ex.id || idx} className="copy-exercise-item">
+                                <span className="copy-exercise-name">{ex.name}</span>
+                                <span className="copy-exercise-details">
+                                  {ex.sets} × {repsDisplay}
+                                  {valueDisplay && ex.measurementType !== 'bodyweight' && ex.measurementType !== 'time' && (
+                                    <> • {valueDisplay} {ex.measurementUnit}</>
+                                  )}
+                                  {ex.measurementType === 'time' && valueDisplay && (
+                                    <> • {formatTimeDisplay(valueDisplay)}</>
+                                  )}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
                   )
                 })
               )}
@@ -637,6 +684,7 @@ function Workouts() {
             
             <div className="modal-actions">
               <button 
+                type="button"
                 className="modal-copy-btn" 
                 onClick={copyWorkoutFromDate}
                 disabled={!copyFromDate}
@@ -644,6 +692,7 @@ function Workouts() {
                 Copy Exercises
               </button>
               <button 
+                type="button"
                 className="modal-cancel-btn" 
                 onClick={() => { setShowCopyModal(false); setCopyFromDate(''); }}
               >
