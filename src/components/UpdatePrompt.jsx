@@ -44,11 +44,33 @@ export function UpdateProvider({ children }) {
   const handleUpdate = async () => {
     setUpdating(true)
     try {
+      // Listen for the controlling service worker to change before reloading
+      let reloadPromise = null
+      if ('serviceWorker' in navigator) {
+        reloadPromise = new Promise((resolve) => {
+          const handler = () => {
+            navigator.serviceWorker.removeEventListener('controllerchange', handler)
+            resolve()
+          }
+          navigator.serviceWorker.addEventListener('controllerchange', handler)
+        })
+      }
+      
+      // Tell the waiting SW to skip waiting and become active
+      // updateSW(true) sends SKIP_WAITING message to the waiting SW
       await updateSW(true)
-      // Force reload after a short delay if the page doesn't reload automatically
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
+      
+      // Wait for the new service worker to actually take control
+      if (reloadPromise) {
+        // Add a timeout in case controllerchange doesn't fire
+        await Promise.race([
+          reloadPromise,
+          new Promise(resolve => setTimeout(resolve, 2000))
+        ])
+      }
+      
+      // Force hard reload to ensure we get the new version
+      window.location.reload()
     } catch (error) {
       console.error('Update failed:', error)
       // Force reload on error as fallback
