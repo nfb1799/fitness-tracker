@@ -44,18 +44,13 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         // Claim clients immediately when SW becomes active
         clientsClaim: true,
+        // Don't intercept Firestore streaming connections
+        navigateFallbackDenylist: [/^\/.*\/__\//, /^\/.*\/google\.firestore/],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'firestore-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              },
-              networkTimeoutSeconds: 10
-            }
+            // Skip Firestore streaming/channel requests entirely - let them pass through
+            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*\/(Listen|Write)\/channel/i,
+            handler: 'NetworkOnly'
           },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
