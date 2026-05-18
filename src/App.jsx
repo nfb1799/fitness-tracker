@@ -5,8 +5,8 @@ import Dashboard from './components/Dashboard'
 import Nutrition from './components/Nutrition'
 import WeighIns from './components/WeighIns'
 import Settings from './components/Settings'
-import Social from './components/Social'
 import Analytics from './components/Analytics'
+import Goals from './components/Goals'
 import Auth from './components/Auth'
 import OfflineIndicator from './components/OfflineIndicator'
 import { useAuth } from './contexts/AuthContext'
@@ -14,47 +14,24 @@ import { useAuth } from './contexts/AuthContext'
 function App() {
   const { currentUser, logout, userProfile } = useAuth()
   const [currentPage, setCurrentPage] = useState('dashboard')
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('theme')
-    return saved || 'light'
-  })
+  const [logChooserOpen, setLogChooserOpen] = useState(false)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('theme', theme)
-  }, [theme])
-
-  // Listen for theme changes from Settings
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'theme' && e.newValue && e.newValue !== theme) {
-        setTheme(e.newValue)
-      }
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
-  }, [theme])
+    document.documentElement.setAttribute('data-theme', 'dark')
+    localStorage.setItem('theme', 'dark')
+  }, [])
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard':
-        return <Dashboard />
-      case 'workouts':
-        return <Workouts />
-      case 'nutrition':
-        return <Nutrition />
-      case 'weighins':
-        return <WeighIns />
-      case 'social':
-        return <Social />
-      case 'analytics':
-        return <Analytics />
-      case 'settings':
-        return <Settings />
-      default:
-        return <Dashboard />
+      case 'dashboard': return <Dashboard />
+      case 'workouts':  return <Workouts />
+      case 'nutrition': return <Nutrition />
+      case 'weighins':  return <WeighIns />
+      case 'analytics': return <Analytics />
+      case 'goals':     return <Goals />
+      case 'settings':  return <Settings />
+      default: return <Dashboard />
     }
   }
 
@@ -62,71 +39,156 @@ function App() {
     try {
       await logout()
       setCurrentPage('dashboard')
-      setMobileMenuOpen(false)
+      setProfileMenuOpen(false)
     } catch (error) {
       console.error('Logout error:', error)
     }
   }
 
-  const handleNavClick = (page) => {
+  const goTo = (page) => {
     setCurrentPage(page)
-    setMobileMenuOpen(false)
+    setLogChooserOpen(false)
+    setProfileMenuOpen(false)
   }
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'workouts', label: 'Workouts', icon: '💪' },
-    { id: 'nutrition', label: 'Nutrition', icon: '🍎' },
-    { id: 'weighins', label: 'Weigh-Ins', icon: '⚖️' },
-    { id: 'analytics', label: 'Analytics', icon: '📈' },
-    { id: 'social', label: 'Social', icon: '👥' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
-  ]
+  // Tab is "active" for dashboard/log/trends/goals top-level tabs.
+  // 'data' tab covers analytics + weigh-ins.
+  const activeTab =
+    currentPage === 'dashboard' ? 'home' :
+    (currentPage === 'workouts' || currentPage === 'nutrition') ? 'log' :
+    (currentPage === 'analytics' || currentPage === 'weighins') ? 'data' :
+    currentPage === 'goals' ? 'goals' :
+    null
 
-  // Show auth screen if not logged in
+  const initials = (userProfile?.displayName || currentUser?.email || 'U')
+    .trim().charAt(0).toUpperCase()
+
   if (!currentUser) {
     return <Auth />
   }
 
+  const tabs = [
+    {
+      id: 'home', label: 'Today',
+      icon: (c) => <rect x="3" y="3" width="14" height="14" rx="3" stroke={c} strokeWidth="1.6" fill="none"/>,
+      onClick: () => goTo('dashboard'),
+    },
+    {
+      id: 'log', label: 'Log',
+      icon: (c) => <g><line x1="10" y1="4" x2="10" y2="16" stroke={c} strokeWidth="1.8" strokeLinecap="round"/><line x1="4" y1="10" x2="16" y2="10" stroke={c} strokeWidth="1.8" strokeLinecap="round"/></g>,
+      onClick: () => setLogChooserOpen(true),
+    },
+    {
+      id: 'data', label: 'Trends',
+      icon: (c) => <polyline points="3,14 7,9 11,12 17,5" stroke={c} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>,
+      onClick: () => goTo('analytics'),
+    },
+    {
+      id: 'goals', label: 'Goals',
+      icon: (c) => <circle cx="10" cy="10" r="6" stroke={c} strokeWidth="1.6" fill="none"/>,
+      onClick: () => goTo('goals'),
+    },
+  ]
+
   return (
     <div className="app">
-      <header className="header">
-        <div className="header-left">
-          <h1 className="header-title">💪 FitTrack</h1>
+      <header className="app-header">
+        <div className="app-header-left">
+          <span className="app-brand-sub hy-sub-label">FITTRACK</span>
+          <h1 className="app-brand">
+            {currentPage === 'dashboard' && 'Today'}
+            {currentPage === 'nutrition' && 'Log meal'}
+            {currentPage === 'workouts' && 'Log workout'}
+            {currentPage === 'weighins' && 'Weight'}
+            {currentPage === 'analytics' && 'Trends'}
+            {currentPage === 'goals' && 'Goals'}
+            {currentPage === 'settings' && 'Settings'}
+          </h1>
         </div>
-
-        <button 
-          className={`mobile-menu-btn ${mobileMenuOpen ? 'open' : ''}`}
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
+        <button
+          className="app-avatar"
+          onClick={() => setProfileMenuOpen(v => !v)}
+          aria-label="Profile menu"
         >
-          <span></span>
-          <span></span>
-          <span></span>
+          {initials}
         </button>
-
-        <nav className={`nav ${mobileMenuOpen ? 'open' : ''}`}>
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              className={`nav-btn ${currentPage === item.id ? 'active' : ''}`}
-              onClick={() => handleNavClick(item.id)}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
-            </button>
-          ))}
-          <div className="nav-divider"></div>
-          <button className="nav-btn logout" onClick={handleLogout}>
-            <span className="nav-icon">🚪</span>
-            <span className="nav-label">Logout</span>
-          </button>
-        </nav>
       </header>
+
+      {profileMenuOpen && (
+        <>
+          <div className="app-overlay" onClick={() => setProfileMenuOpen(false)} />
+          <div className="profile-menu">
+            <div className="profile-menu-head">
+              <div className="profile-menu-name">{userProfile?.displayName || 'User'}</div>
+              <div className="profile-menu-mail">{currentUser?.email || 'Anonymous'}</div>
+            </div>
+            <button className="profile-menu-item" onClick={() => goTo('settings')}>
+              Settings
+            </button>
+            <button className="profile-menu-item danger" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        </>
+      )}
 
       <main className="main-content">
         {renderPage()}
       </main>
+
+      {/* Log chooser sheet */}
+      {logChooserOpen && (
+        <>
+          <div className="app-overlay" onClick={() => setLogChooserOpen(false)} />
+          <div className="log-sheet">
+            <div className="log-sheet-grip" />
+            <div className="hy-section-label" style={{ marginBottom: 8 }}>What are you logging?</div>
+            <button className="log-sheet-item" onClick={() => goTo('nutrition')}>
+              <span className="log-sheet-emoji">🍽</span>
+              <div>
+                <div className="log-sheet-title">Meal</div>
+                <div className="log-sheet-sub">Free-text + macros</div>
+              </div>
+            </button>
+            <button className="log-sheet-item" onClick={() => goTo('workouts')}>
+              <span className="log-sheet-emoji">🏋</span>
+              <div>
+                <div className="log-sheet-title">Workout</div>
+                <div className="log-sheet-sub">Sets, reps, time</div>
+              </div>
+            </button>
+            <button className="log-sheet-item" onClick={() => goTo('weighins')}>
+              <span className="log-sheet-emoji">⚖</span>
+              <div>
+                <div className="log-sheet-title">Weight</div>
+                <div className="log-sheet-sub">Occasional check-in</div>
+              </div>
+            </button>
+            <button className="log-sheet-cancel" onClick={() => setLogChooserOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Bottom tab bar */}
+      <nav className="bottom-tabs">
+        {tabs.map(t => {
+          const isActive = t.id === activeTab
+          const color = isActive ? 'var(--accent-primary)' : 'var(--text-dimmed)'
+          return (
+            <button
+              key={t.id}
+              className={`bottom-tab ${isActive ? 'active' : ''}`}
+              onClick={t.onClick}
+              style={{ color }}
+            >
+              <svg width="22" height="22" viewBox="0 0 20 20">{t.icon(color)}</svg>
+              <span>{t.label}</span>
+            </button>
+          )
+        })}
+      </nav>
 
       <OfflineIndicator />
     </div>

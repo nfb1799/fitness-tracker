@@ -10,33 +10,24 @@ function WeighIns() {
   const [weight, setWeight] = useState('')
   const [note, setNote] = useState('')
   const [weighInDate, setWeighInDate] = useState(new Date().toISOString().split('T')[0])
-  const [isPrivate, setIsPrivate] = useState(true)
   const [weightUnit, setWeightUnit] = useState('lbs')
   const [targetWeight, setTargetWeight] = useState(null)
-  const [startWeight, setStartWeight] = useState(null)
 
   useEffect(() => {
     const loadData = async () => {
-      if (currentUser) {
-        try {
-          const [weighInData, settings] = await Promise.all([
-            getWeighIns(currentUser.uid),
-            getUserSettings(currentUser.uid)
-          ])
-          setWeighIns(weighInData)
-          if (settings) {
-            setIsPrivate(settings.weightPrivate !== false) // Default to private
-            setWeightUnit(settings.weightUnit || 'lbs')
-            setTargetWeight(settings.targetWeight ? parseFloat(settings.targetWeight) : null)
-          }
-          // Set start weight from oldest weigh-in
-          if (weighInData.length > 0) {
-            const sorted = [...weighInData].sort((a, b) => new Date(a.date) - new Date(b.date))
-            setStartWeight(sorted[0].weight)
-          }
-        } catch (error) {
-          console.error('Error loading weigh-ins:', error)
+      if (!currentUser) return
+      try {
+        const [data, settings] = await Promise.all([
+          getWeighIns(currentUser.uid),
+          getUserSettings(currentUser.uid),
+        ])
+        setWeighIns(data)
+        if (settings) {
+          setWeightUnit(settings.weightUnit || 'lbs')
+          setTargetWeight(settings.targetWeight ? parseFloat(settings.targetWeight) : null)
         }
+      } catch (err) {
+        console.error('Error loading weigh-ins:', err)
       }
       setLoading(false)
     }
@@ -45,30 +36,25 @@ function WeighIns() {
 
   const handleAddWeighIn = async (e) => {
     e.preventDefault()
-
     if (!weight) return
-
     const selectedDate = new Date(weighInDate + 'T12:00:00')
-    const newWeighIn = {
+    const entry = {
       weight: parseFloat(weight),
       unit: weightUnit,
       note: note.trim(),
       date: weighInDate,
       localTimestamp: selectedDate.toLocaleString(),
-      isPrivate
+      isPrivate: true,
     }
-
     try {
-      const id = await addWeighIn(currentUser.uid, newWeighIn)
-      const updatedWeighIns = [{ id, ...newWeighIn, timestamp: { toDate: () => selectedDate } }, ...weighIns]
-      // Sort by date descending
-      updatedWeighIns.sort((a, b) => new Date(b.date) - new Date(a.date))
-      setWeighIns(updatedWeighIns)
-      setWeight('')
-      setNote('')
+      const id = await addWeighIn(currentUser.uid, entry)
+      const updated = [{ id, ...entry, timestamp: { toDate: () => selectedDate } }, ...weighIns]
+      updated.sort((a, b) => new Date(b.date) - new Date(a.date))
+      setWeighIns(updated)
+      setWeight(''); setNote('')
       setWeighInDate(new Date().toISOString().split('T')[0])
-    } catch (error) {
-      console.error('Error adding weigh-in:', error)
+    } catch (err) {
+      console.error('Error adding weigh-in:', err)
     }
   }
 
@@ -76,118 +62,95 @@ function WeighIns() {
     try {
       await deleteWeighIn(currentUser.uid, id)
       setWeighIns(weighIns.filter(w => w.id !== id))
-    } catch (error) {
-      console.error('Error deleting weigh-in:', error)
+    } catch (err) {
+      console.error('Error deleting weigh-in:', err)
     }
   }
 
-  const handlePrivacyChange = async (value) => {
-    setIsPrivate(value)
-    try {
-      await updateUserSettings(currentUser.uid, { weightPrivate: value })
-    } catch (error) {
-      console.error('Error saving privacy setting:', error)
-    }
-  }
+  if (loading) return <div className="weighins-page"><p className="muted">Loading…</p></div>
 
-  const getWeightProgress = () => {
-    if (!targetWeight || weighIns.length === 0) return null
-    
-    const sorted = [...weighIns].sort((a, b) => new Date(b.date) - new Date(a.date))
-    const currentWeight = sorted[0].weight
-    const start = startWeight || currentWeight
-    
-    // Auto-detect if cutting or bulking based on target vs start
-    const isCutting = targetWeight < start
-    const remaining = Math.abs(targetWeight - currentWeight)
-    
-    // Calculate progress percentage
-    let progress = 0
-    const totalChange = Math.abs(targetWeight - start)
-    if (totalChange > 0) {
-      if (isCutting) {
-        progress = ((start - currentWeight) / (start - targetWeight)) * 100
-      } else {
-        progress = ((currentWeight - start) / (targetWeight - start)) * 100
-      }
-    }
-    
-    // Clamp progress between 0 and 100
-    progress = Math.max(0, Math.min(100, progress))
-    
-    // Check if goal is reached
-    const goalReached = isCutting 
-      ? currentWeight <= targetWeight
-      : currentWeight >= targetWeight
+  const sorted = [...weighIns].sort((a, b) => new Date(b.date) - new Date(a.date))
+  const latest = sorted[0]
+  const prev = sorted[1]
+  const delta = latest && prev ? +(latest.weight - prev.weight).toFixed(1) : null
+  const startWeight = sorted.length ? sorted[sorted.length - 1].weight : null
 
-    return {
-      currentWeight,
-      targetWeight,
-      startWeight: start,
-      remaining,
-      progress,
-      goalReached,
-      isCutting
-    }
-  }
+  // 30-day delta
+  const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const recent = sorted.filter(w => new Date(w.date) >= thirtyDaysAgo)
+  const monthDelta = recent.length > 1
+    ? +(recent[0].weight - recent[recent.length - 1].weight).toFixed(1)
+    : null
 
-  const weightProgress = getWeightProgress()
+  // Chart points (last 30 days, sorted ascending)
+  const chartPoints = [...recent].sort((a, b) => new Date(a.date) - new Date(b.date)).map(w => w.weight)
+  const min = chartPoints.length ? Math.min(...chartPoints) : 0
+  const max = chartPoints.length ? Math.max(...chartPoints) : 1
+  const range = max - min || 1
+  const W = 280, H = 60
+  const step = chartPoints.length > 1 ? W / (chartPoints.length - 1) : W
+  const path = chartPoints.map((p, i) =>
+    `${i === 0 ? 'M' : 'L'} ${i * step} ${H - ((p - min) / range) * H * 0.85 - H * 0.075}`
+  ).join(' ')
 
-  if (loading) {
-    return <div className="weighins-page"><p>Loading...</p></div>
+  // Quick nudge buttons
+  const nudge = (delta) => {
+    const base = latest?.weight || 0
+    setWeight((base + delta).toFixed(1))
   }
 
   return (
     <div className="weighins-page">
-      {/* Privacy Toggle */}
-      <div className="privacy-section">
-        <div className="privacy-toggle">
-          <button
-            className={`toggle-btn ${isPrivate ? 'private' : 'public'}`}
-            onClick={() => handlePrivacyChange(!isPrivate)}
-          >
-            <span className="toggle-slider"></span>
-          </button>
-          <span className="privacy-label">
-            {isPrivate ? '🔒 Private' : '👁️ Public'}
-          </span>
-        </div>
-      </div>
+      <div className="hy-sub-label" style={{ padding: '4px 0 12px' }}>OCCASIONAL CHECK-IN</div>
 
-      {/* Weight Progress Section */}
-      {weightProgress && targetWeight && (
-        <div className="progress-section">
-          <h3 className="section-title">
-            {weightProgress.goalReached ? '🎉 Goal Reached!' : `Progress to Goal`}
-          </h3>
-          <div className="progress-stats">
-            <div className="progress-stat">
-              <span className="stat-label">Current</span>
-              <span className="stat-value">{weightProgress.currentWeight} {weightUnit}</span>
-            </div>
-            <div className="progress-stat">
-              <span className="stat-label">Target</span>
-              <span className="stat-value target">{weightProgress.targetWeight} {weightUnit}</span>
-            </div>
-            <div className="progress-stat">
-              <span className="stat-label">Remaining</span>
-              <span className="stat-value">{weightProgress.remaining.toFixed(1)} {weightUnit}</span>
-            </div>
+      {/* Hero number card */}
+      {latest && (
+        <div className="hy-card accent weigh-hero">
+          <span className="hy-sub-label" style={{ color: 'var(--accent-primary)' }}>TODAY</span>
+          <div className="weigh-number hy-numeric">{latest.weight}</div>
+          <div className="weigh-unit mono">{latest.unit || weightUnit} {delta !== null && (
+            <span style={{ color: delta < 0 ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
+              · {delta > 0 ? '+' : ''}{delta}
+            </span>
+          )}</div>
+          <div className="weigh-nudges">
+            {[-0.2, -0.1, 0.1, 0.2].map(d => (
+              <button key={d} type="button" className="hy-pill" onClick={() => nudge(d)}>
+                {d > 0 ? '+' : ''}{d}
+              </button>
+            ))}
           </div>
-          <div className="progress-bar-container">
-            <div 
-              className={`progress-bar ${weightProgress.goalReached ? 'complete' : ''}`}
-              style={{ width: `${weightProgress.progress}%` }}
-            ></div>
-          </div>
-          <p className="progress-percent">{Math.round(weightProgress.progress)}% complete</p>
         </div>
       )}
 
-      {/* Add Weigh-In Form */}
-      <form className="weighin-form" onSubmit={handleAddWeighIn}>
-        <h3 className="section-title">Log Weigh-In</h3>
-        <div className="form-row three-cols">
+      {/* Trend chart */}
+      {chartPoints.length > 1 && (
+        <div className="hy-card" style={{ marginTop: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700 }}>Last 30 days</span>
+            {monthDelta !== null && (
+              <span className="hy-numeric" style={{ fontSize: 13, color: monthDelta < 0 ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
+                {monthDelta < 0 ? '↓' : '↑'} {Math.abs(monthDelta)} {weightUnit}
+              </span>
+            )}
+          </div>
+          <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+            <path d={`${path} L ${(chartPoints.length - 1) * step} ${H} L 0 ${H} Z`} fill="var(--accent-primary)" opacity="0.12" />
+            <path d={path} stroke="var(--accent-primary)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            {chartPoints.map((p, i) => (
+              <circle key={i} cx={i * step} cy={H - ((p - min) / range) * H * 0.85 - H * 0.075} r="2" fill="var(--accent-primary)" />
+            ))}
+          </svg>
+          <div className="weigh-axis">
+            <span>30d ago</span><span>today</span>
+          </div>
+        </div>
+      )}
+
+      {/* Add weigh-in form */}
+      <form className="weighin-form" onSubmit={handleAddWeighIn} style={{ marginTop: 12 }}>
+        <div className="hy-section-label" style={{ marginBottom: 8 }}>New entry</div>
+        <div className="weigh-form-row">
           <div className="form-group">
             <label htmlFor="weighin-date">Date</label>
             <input
@@ -210,50 +173,48 @@ function WeighIns() {
               onChange={(e) => setWeight(e.target.value)}
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="note">Note (optional)</label>
-            <input
-              type="text"
-              id="note"
-              placeholder="e.g., After workout, Morning..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </div>
         </div>
-        <button type="submit" className="add-btn">
-          Add Weigh-In
-        </button>
+        <div className="form-group">
+          <label htmlFor="note">Note (optional)</label>
+          <input
+            type="text"
+            id="note"
+            placeholder="e.g., morning, after workout…"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </div>
+        <button type="submit" className="add-btn">Save weigh-in</button>
       </form>
 
-      {/* Weigh-In History */}
-      <div className="weighin-history">
-        <h3 className="section-title">Recent Weigh-Ins</h3>
-        {weighIns.length === 0 ? (
-          <p className="empty-message">No weigh-ins logged yet. Start tracking your weight!</p>
-        ) : (
-          <div className="weighin-list">
-            {weighIns.slice(0, 10).map((entry) => (
-              <div key={entry.id} className="weighin-entry">
-                <div className="weighin-main">
-                  <span className="weighin-weight">{entry.weight} {entry.unit || weightUnit}</span>
-                  <span className="weighin-date">
-                    {entry.localTimestamp || (entry.timestamp?.toDate ? entry.timestamp.toDate().toLocaleDateString() : entry.date)}
-                  </span>
+      {/* Log history */}
+      <div className="hy-section-label" style={{ marginTop: 18, marginBottom: 8 }}>Log</div>
+      {weighIns.length === 0 ? (
+        <div className="hy-card dashed" style={{ padding: '24px 16px' }}>
+          <span style={{ color: 'var(--text-muted)' }}>No weigh-ins yet.</span>
+        </div>
+      ) : (
+        <div className="weigh-log">
+          {sorted.slice(0, 12).map((entry, i) => {
+            const next = sorted[i + 1]
+            const d = next ? +(entry.weight - next.weight).toFixed(1) : null
+            return (
+              <div key={entry.id} className={`hy-card weigh-row ${i % 2 ? 'tilt-r-sm' : 'tilt-l-sm'}`}>
+                <span className="weigh-row-date">{new Date(entry.date + 'T12:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                <div className="weigh-row-right">
+                  {d !== null && (
+                    <span className="mono" style={{ fontSize: 11, color: d < 0 ? 'var(--accent-primary)' : 'var(--text-muted)' }}>
+                      {d > 0 ? '+' : ''}{d}
+                    </span>
+                  )}
+                  <span className="hy-numeric weigh-row-value">{entry.weight}</span>
+                  <button className="delete-btn" onClick={() => handleDeleteWeighIn(entry.id)} aria-label="Delete">×</button>
                 </div>
-                {entry.note && <p className="weighin-note">{entry.note}</p>}
-                <button
-                  className="delete-btn"
-                  onClick={() => handleDeleteWeighIn(entry.id)}
-                  aria-label="Delete weigh-in"
-                >
-                  ×
-                </button>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
