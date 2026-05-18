@@ -60,7 +60,9 @@ body, input, textarea, select, button {
   font-weight: 700 !important;
 }
 
-/* Cards: dark surface, subtle border, gentle shadow */
+/* Cards: dark surface, subtle border, gentle shadow.
+   NOTE: do NOT include list wrappers like .meals-list / .exercises-list /
+   .weighin-history here — the items inside them are the cards. */
 .stat-card,
 .weight-progress-card,
 .activity-section,
@@ -73,7 +75,6 @@ body, input, textarea, select, button {
 .detail-section,
 .daily-summary,
 .nutrition-form,
-.meals-list,
 .meal-card,
 .workout-form,
 .exercise-form,
@@ -94,6 +95,27 @@ body, input, textarea, select, button {
   border: 1px solid var(--border-color) !important;
   border-radius: 14px !important;
   box-shadow: 0 1px 0 rgba(255,255,255,.02) inset, 0 6px 16px rgba(0,0,0,.32) !important;
+}
+
+/* List-wrapper section spacing */
+.meals-list,
+.exercises-list,
+.weighin-history {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin-top: 22px !important;
+  display: block !important;
+}
+
+/* Section title above its list, then a small gap, then the grid below */
+.meals-list .list-title,
+.exercises-list .list-title,
+.weighin-history .section-title {
+  display: block;
+  margin: 0 0 12px !important;
+  padding: 0 2px;
 }
 
 /* Subtle tilt on entry-style cards for the Stack metaphor */
@@ -316,9 +338,12 @@ button.primary,
   color: var(--text-primary) !important;
 }
 
-/* Tablet & up — keep mobile vibe but allow some breathing */
+/* Tablet & up — keep mobile vibe but allow some breathing.
+   ⚠ Only target the inner grid wrappers, not the outer section wrappers
+   (otherwise the section title gets pushed into column 1 next to the list). */
 @media (min-width: 720px) {
-  .meals-grid, .exercises-list {
+  .meals-grid,
+  .exercises-grid {
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px;

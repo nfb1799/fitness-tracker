@@ -1091,100 +1091,12 @@ function Workouts() {
                     </div>
                   ) : (
                     // View Mode
-                    <>
-                      <div className="exercise-header">
-                        <div className="drag-handle" title="Drag to reorder">⋮⋮</div>
-                        <h4 className="exercise-name">{exercise.name}</h4>
-                        <div className="exercise-actions">
-                          <button 
-                            className="edit-btn"
-                            onClick={() => startEditing(exercise)}
-                            aria-label="Edit exercise"
-                          >
-                            ✎
-                          </button>
-                          <button 
-                            className="delete-btn"
-                            onClick={() => handleDeleteExercise(exercise.id)}
-                            aria-label="Delete exercise"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </div>
-                      <div className="exercise-details">
-                        {/* Show Sets only if not a time-based exercise */}
-                        {exercise.measurementType !== 'time' && exercise.sets && (
-                          <div className="detail">
-                            <span className="detail-label">Sets</span>
-                            <span className="detail-value">{exercise.sets}</span>
-                          </div>
-                        )}
-                        
-                        {/* Show Reps only if not a time-based exercise */}
-                        {exercise.measurementType !== 'time' && exercise.reps && (
-                          <div className="detail">
-                            <span className="detail-label">Reps</span>
-                            <span className="detail-value">
-                              {Array.isArray(exercise.reps) 
-                                ? exercise.reps.join(' / ') 
-                                : exercise.reps}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* Show Duration for time-based exercises */}
-                        {exercise.measurementType === 'time' && (
-                          <div className="detail">
-                            <span className="detail-label">Duration</span>
-                            <span className="detail-value">{formatTimeDisplay(exercise.measurementValue)}</span>
-                          </div>
-                        )}
-                        
-                        {/* Show Weight for resistance exercises */}
-                        {(exercise.measurementType === 'resistance' || (!exercise.measurementType && exercise.resistance)) && (
-                          <div className="detail">
-                            <span className="detail-label">Weight</span>
-                            <span className="detail-value">
-                              {exercise.measurementValue !== undefined && exercise.measurementValue !== null
-                                ? Array.isArray(exercise.measurementValue)
-                                  ? exercise.measurementValue.map(w => `${w}`).join(' / ') + ` ${exercise.measurementUnit || 'lbs'}`
-                                  : `${exercise.measurementValue} ${exercise.measurementUnit || 'lbs'}`
-                                : `${exercise.resistance} lbs`}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* Show Assistance for assisted exercises */}
-                        {exercise.measurementType === 'assistance' && (
-                          <div className="detail">
-                            <span className="detail-label">Assistance</span>
-                            <span className="detail-value">
-                              {Array.isArray(exercise.measurementValue)
-                                ? exercise.measurementValue.map(w => `-${w}`).join(' / ') + ` ${exercise.measurementUnit || 'lbs'}`
-                                : `-${exercise.measurementValue} ${exercise.measurementUnit || 'lbs'}`}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* Show Distance for distance exercises */}
-                        {exercise.measurementType === 'distance' && (
-                          <div className="detail">
-                            <span className="detail-label">Distance</span>
-                            <span className="detail-value">{exercise.measurementValue} {exercise.measurementUnit || 'miles'}</span>
-                          </div>
-                        )}
-                        
-                        {/* Show Bodyweight indicator */}
-                        {exercise.measurementType === 'bodyweight' && (
-                          <div className="detail">
-                            <span className="detail-label">Type</span>
-                            <span className="detail-value bodyweight-badge">Bodyweight</span>
-                          </div>
-                        )}
-                      </div>
-                      <span className="exercise-time">{exercise.localTimestamp || (exercise.timestamp?.toDate ? exercise.timestamp.toDate().toLocaleString() : '')}</span>
-                    </>
+                    <ExerciseCardView
+                      exercise={exercise}
+                      onEdit={() => startEditing(exercise)}
+                      onDelete={() => handleDeleteExercise(exercise.id)}
+                      formatTimeDisplay={formatTimeDisplay}
+                    />
                   )}
                 </div>
               ))}
@@ -1193,6 +1105,123 @@ function Workouts() {
         })()}
       </div>
     </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Exercise card — view mode
+// Renders a clean, site-styled card with a per-set list.
+// ─────────────────────────────────────────────────────────────
+function ExerciseCardView({ exercise, onEdit, onDelete, formatTimeDisplay }) {
+  const mt = exercise.measurementType || 'resistance'
+  const unit = exercise.measurementUnit || (mt === 'distance' ? 'miles' : 'lbs')
+
+  // Normalize reps and weights to parallel arrays
+  const reps = Array.isArray(exercise.reps)
+    ? exercise.reps
+    : (exercise.reps != null ? [exercise.reps] : [])
+  const weights = Array.isArray(exercise.measurementValue)
+    ? exercise.measurementValue
+    : (exercise.measurementValue != null ? [exercise.measurementValue] : (exercise.resistance != null ? [exercise.resistance] : []))
+
+  const setCount = Math.max(reps.length, weights.length, exercise.sets || 0)
+  const hasWeight = mt === 'resistance' || mt === 'assistance' || (!exercise.measurementType && exercise.resistance != null)
+  const weightsUniform = hasWeight && weights.length > 1 &&
+    weights.every(w => Number(w) === Number(weights[0]))
+  const repsUniform = reps.length > 1 && reps.every(r => Number(r) === Number(reps[0]))
+
+  // Compact summary line shown at the top of the card
+  let summary = null
+  if (mt === 'time') {
+    summary = `${formatTimeDisplay(exercise.measurementValue)}`
+  } else if (mt === 'distance') {
+    summary = `${exercise.measurementValue} ${unit}`
+  } else if (mt === 'bodyweight') {
+    summary = repsUniform
+      ? `${setCount} × ${reps[0]}`
+      : `${setCount} sets · BW`
+  } else if (hasWeight) {
+    // Resistance / assistance
+    const sign = mt === 'assistance' ? '-' : ''
+    if (weightsUniform && repsUniform) {
+      summary = `${sign}${weights[0]} ${unit} × ${reps[0]} × ${setCount}`
+    } else if (weightsUniform) {
+      summary = `${sign}${weights[0]} ${unit} × ${reps.join(' · ')}`
+    } else if (setCount === 1) {
+      summary = `${sign}${weights[0]} ${unit} × ${reps[0] || ''}`
+    } else {
+      summary = `${setCount} sets`
+    }
+  }
+
+  // Total volume (resistance only, when meaningful)
+  let volume = null
+  if (mt === 'resistance' && reps.length && weights.length) {
+    volume = 0
+    for (let i = 0; i < setCount; i++) {
+      const r = parseInt(reps[i] ?? reps[0]) || 0
+      const w = parseFloat(weights[i] ?? weights[0]) || 0
+      volume += r * w
+    }
+  }
+
+  const showTable = mt !== 'time' && mt !== 'distance' && setCount > 1 && !(weightsUniform && repsUniform)
+
+  return (
+    <>
+      <div className="ex-head">
+        <div className="ex-head-left">
+          <h4 className="ex-name">{exercise.name}</h4>
+          <div className="ex-meta mono">
+            <span className="ex-type">{mt.toUpperCase()}</span>
+            {setCount > 0 && mt !== 'time' && mt !== 'distance' && (
+              <span className="ex-dot">·</span>
+            )}
+            {setCount > 0 && mt !== 'time' && mt !== 'distance' && (
+              <span>{setCount} {setCount === 1 ? 'SET' : 'SETS'}</span>
+            )}
+          </div>
+        </div>
+        <div className="ex-actions">
+          <button className="edit-btn" onClick={onEdit} aria-label="Edit">✎</button>
+          <button className="delete-btn" onClick={onDelete} aria-label="Delete">×</button>
+        </div>
+      </div>
+
+      {summary && (
+        <div className="ex-summary hy-numeric">{summary}</div>
+      )}
+
+      {showTable && (
+        <div className="ex-sets">
+          {Array.from({ length: setCount }).map((_, i) => {
+            const r = reps[i] ?? reps[reps.length - 1]
+            const w = weights[i] ?? weights[weights.length - 1]
+            return (
+              <div key={i} className="ex-set-row">
+                <span className="ex-set-no mono">#{i + 1}</span>
+                {hasWeight && (
+                  <span className="ex-set-weight mono">
+                    {mt === 'assistance' ? '-' : ''}{w ?? '—'}
+                    <span className="ex-unit"> {unit}</span>
+                  </span>
+                )}
+                <span className="ex-set-reps mono">
+                  {r ?? '—'}<span className="ex-unit"> reps</span>
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {volume != null && volume > 0 && (
+        <div className="ex-footer">
+          <span className="hy-sub-label">VOLUME</span>
+          <span className="hy-numeric ex-volume">{volume.toLocaleString()} {unit}</span>
+        </div>
+      )}
+    </>
   )
 }
 

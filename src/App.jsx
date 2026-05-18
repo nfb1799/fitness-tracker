@@ -140,29 +140,54 @@ function App() {
       {logChooserOpen && (
         <>
           <div className="app-overlay" onClick={() => setLogChooserOpen(false)} />
-          <div className="log-sheet">
+          <div className="log-sheet" role="dialog" aria-label="What are you logging?">
             <div className="log-sheet-grip" />
-            <div className="hy-section-label" style={{ marginBottom: 8 }}>What are you logging?</div>
+            <div className="log-sheet-head">
+              <span className="hy-section-label">What are you logging?</span>
+            </div>
             <button className="log-sheet-item" onClick={() => goTo('nutrition')}>
-              <span className="log-sheet-emoji">🍽</span>
-              <div>
-                <div className="log-sheet-title">Meal</div>
-                <div className="log-sheet-sub">Free-text + macros</div>
+              <span className="log-sheet-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                  <path d="M5 3 v9 a2 2 0 0 0 2 2 h0 v3" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M9 3 v5 a1 1 0 0 1 -2 0 v-5" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+                  <path d="M14 3 c-2 0 -3 3 -3 6 c0 1 1 2 2 2 h1 v6" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+              <div className="log-sheet-text">
+                <span className="log-sheet-title">Meal</span>
+                <span className="log-sheet-sub">FREE-TEXT · MACROS</span>
               </div>
+              <span className="log-sheet-chev">›</span>
             </button>
             <button className="log-sheet-item" onClick={() => goTo('workouts')}>
-              <span className="log-sheet-emoji">🏋</span>
-              <div>
-                <div className="log-sheet-title">Workout</div>
-                <div className="log-sheet-sub">Sets, reps, time</div>
+              <span className="log-sheet-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                  <rect x="2" y="8" width="2.5" height="4" rx="0.5" stroke="currentColor" strokeWidth="1.4" fill="none"/>
+                  <rect x="15.5" y="8" width="2.5" height="4" rx="0.5" stroke="currentColor" strokeWidth="1.4" fill="none"/>
+                  <line x1="4.5" y1="10" x2="15.5" y2="10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  <rect x="5.5" y="6.5" width="1.5" height="7" rx="0.5" fill="currentColor"/>
+                  <rect x="13" y="6.5" width="1.5" height="7" rx="0.5" fill="currentColor"/>
+                </svg>
+              </span>
+              <div className="log-sheet-text">
+                <span className="log-sheet-title">Workout</span>
+                <span className="log-sheet-sub">SETS · REPS · TIME</span>
               </div>
+              <span className="log-sheet-chev">›</span>
             </button>
             <button className="log-sheet-item" onClick={() => goTo('weighins')}>
-              <span className="log-sheet-emoji">⚖</span>
-              <div>
-                <div className="log-sheet-title">Weight</div>
-                <div className="log-sheet-sub">Occasional check-in</div>
+              <span className="log-sheet-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                  <rect x="3" y="5" width="14" height="11" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <path d="M10 7 v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <circle cx="10" cy="13" r="0.8" fill="currentColor"/>
+                </svg>
+              </span>
+              <div className="log-sheet-text">
+                <span className="log-sheet-title">Weight</span>
+                <span className="log-sheet-sub">OCCASIONAL CHECK-IN</span>
               </div>
+              <span className="log-sheet-chev">›</span>
             </button>
             <button className="log-sheet-cancel" onClick={() => setLogChooserOpen(false)}>
               Cancel
