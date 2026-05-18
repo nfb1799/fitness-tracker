@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { 
+import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInAnonymously,
   signOut,
   onAuthStateChanged,
   updateProfile,
@@ -56,6 +57,42 @@ export function AuthProvider({ children }) {
   // Login function
   function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password)
+  }
+
+  // Anonymous sign-in (guest mode)
+  async function loginAnonymously() {
+    const userCredential = await signInAnonymously(auth)
+    const guestName = 'Guest'
+
+    await updateProfile(userCredential.user, { displayName: guestName })
+
+    const userDocRef = doc(db, 'users', userCredential.user.uid)
+    const existingDoc = await getDoc(userDocRef)
+
+    if (!existingDoc.exists()) {
+      const defaultProfile = {
+        displayName: guestName,
+        email: '',
+        isAnonymous: true,
+        createdAt: new Date().toISOString(),
+        settings: {
+          name: guestName,
+          weight: '',
+          height: '',
+          calorieGoal: 2000,
+          proteinGoal: 150,
+          workoutDaysGoal: 4,
+          weightUnit: 'lbs',
+          heightUnit: 'in',
+          theme: 'dark'
+        }
+      }
+
+      await setDoc(userDocRef, defaultProfile)
+      setUserProfile(defaultProfile)
+    }
+
+    return userCredential
   }
 
   // Logout function
@@ -113,6 +150,7 @@ export function AuthProvider({ children }) {
     userProfile,
     signup,
     login,
+    loginAnonymously,
     logout,
     resetPassword,
     updateUserProfile,

@@ -13,7 +13,7 @@ function Auth() {
   const [loading, setLoading] = useState(false)
   const [showResetPassword, setShowResetPassword] = useState(false)
 
-  const { signup, login, resetPassword } = useAuth()
+  const { signup, login, loginAnonymously, resetPassword } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -59,6 +59,25 @@ function Auth() {
           break
         default:
           setError('Failed to ' + (isLogin ? 'log in' : 'sign up'))
+      }
+    }
+
+    setLoading(false)
+  }
+
+  const handleGuestSignIn = async () => {
+    setError('')
+    setMessage('')
+    setLoading(true)
+
+    try {
+      await loginAnonymously()
+    } catch (err) {
+      console.error(err)
+      if (err.code === 'auth/operation-not-allowed') {
+        setError('Anonymous sign-in is not enabled')
+      } else {
+        setError('Failed to continue as guest')
       }
     }
 
@@ -196,6 +215,19 @@ function Auth() {
             {loading ? 'Please wait...' : (isLogin ? 'Log In' : 'Sign Up')}
           </button>
         </form>
+
+        <div className="auth-divider">
+          <span>or</span>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGuestSignIn}
+          className="auth-btn auth-btn-guest"
+          disabled={loading}
+        >
+          Continue as Guest
+        </button>
 
         {isLogin && (
           <button 
