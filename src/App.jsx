@@ -17,9 +17,21 @@ function App() {
   const [logChooserOpen, setLogChooserOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
 
+  // Respect saved theme; default to dark.
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'dark')
-    localStorage.setItem('theme', 'dark')
+    const saved = localStorage.getItem('theme') || 'dark'
+    document.documentElement.setAttribute('data-theme', saved)
+  }, [])
+
+  // Re-sync if Settings changes the theme in another tab (or this one)
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'theme' && e.newValue) {
+        document.documentElement.setAttribute('data-theme', e.newValue)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
   }, [])
 
   const renderPage = () => {

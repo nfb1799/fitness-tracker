@@ -113,7 +113,7 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  box-shadow: var(--menu-shadow);
   padding: 6px;
   z-index: 100;
 }
@@ -189,7 +189,7 @@
   padding: 8px 16px 24px;
   z-index: 100;
   animation: sheetSlideUp 0.2s ease-out;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--sheet-shadow);
 }
 
 /* Desktop: centered modal */
@@ -206,7 +206,7 @@
     border-radius: 16px;
     padding: 18px 18px 18px;
     animation: modalFadeIn 0.18s ease-out;
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--modal-shadow);
   }
   .log-sheet .log-sheet-grip { display: none; }
 }
