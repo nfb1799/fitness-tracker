@@ -1,0 +1,110 @@
+.coach-card {
+  padding: 16px 18px !important;
+  position: relative;
+  background: linear-gradient(180deg, var(--bg-accent) 0%, var(--bg-secondary) 70%) !important;
+  border-color: rgba(199, 90, 62, 0.22) !important;
+}
+
+[data-theme="light"] .coach-card {
+  background: linear-gradient(180deg, var(--bg-accent) 0%, var(--bg-secondary) 80%) !important;
+}
+
+.coach-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.coach-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.coach-tagline {
+  font-size: 10px;
+  color: var(--text-dimmed);
+  letter-spacing: 0.4px;
+}
+
+.coach-lead {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+}
+
+.coach-lead-detail {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.coach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.coach-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.coach-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  margin-top: 1px;
+}
+
+.coach-row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.coach-row-head {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.coach-row-detail {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.coach-more {
+  margin-top: 12px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.coach-more:hover { background: var(--bg-tertiary); }

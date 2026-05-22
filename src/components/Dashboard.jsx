@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import {
   getWorkouts, getNutrition, getUserSettings, getWeighIns
 } from '../firebase/firestoreService'
+import Coach from './Coach'
 
 const getLocalDateString = (date = new Date()) => {
   const y = date.getFullYear()
@@ -162,6 +163,9 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* AI Coach insights */}
+      <Coach exercises={exercises} meals={meals} weighIns={weighIns} settings={settings} />
 
       {/* Quick stats row */}
       <div className="quick-stats">
