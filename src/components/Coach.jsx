@@ -16,12 +16,12 @@ const KIND_COLOR = {
   nudge: 'var(--accent-primary)',
 }
 
-function Coach({ exercises, meals, weighIns, settings }) {
+function Coach({ exercises, meals, weighIns, activities, settings }) {
   const [expanded, setExpanded] = useState(false)
 
   const insights = useMemo(
-    () => generateInsights({ exercises, meals, weighIns, settings }),
-    [exercises, meals, weighIns, settings]
+    () => generateInsights({ exercises, meals, weighIns, activities, settings }),
+    [exercises, meals, weighIns, activities, settings]
   )
 
   if (insights.length === 0) return null

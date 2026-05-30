@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import './Dashboard.css'
 import { useAuth } from '../contexts/AuthContext'
 import {
-  getWorkouts, getNutrition, getUserSettings, getWeighIns
+  getWorkouts, getNutrition, getUserSettings, getWeighIns, getActivities
 } from '../firebase/firestoreService'
 import Coach from './Coach'
+import { formatDistance, formatDuration, distanceUnit } from '../lib/geo'
 
 const getLocalDateString = (date = new Date()) => {
   const y = date.getFullYear()
@@ -18,6 +19,7 @@ function Dashboard() {
   const [exercises, setExercises] = useState([])
   const [meals, setMeals] = useState([])
   const [weighIns, setWeighIns] = useState([])
+  const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState({
     calorieGoal: 2000,
@@ -31,13 +33,14 @@ function Dashboard() {
     if (!currentUser) return
     const load = async () => {
       try {
-        const [w, n, s, wi] = await Promise.all([
+        const [w, n, s, wi, acts] = await Promise.all([
           getWorkouts(currentUser.uid),
           getNutrition(currentUser.uid),
           getUserSettings(currentUser.uid),
           getWeighIns(currentUser.uid),
+          getActivities(currentUser.uid),
         ])
-        setExercises(w); setMeals(n); setWeighIns(wi)
+        setExercises(w); setMeals(n); setWeighIns(wi); setActivities(acts)
         if (s) setSettings(prev => ({ ...prev, ...s }))
       } catch (err) {
         console.error('Error loading dashboard:', err)
@@ -52,6 +55,8 @@ function Dashboard() {
   const todayKey = getLocalDateString()
   const todayMeals = meals.filter(m => m.date === todayKey)
   const todayExercises = exercises.filter(e => e.date === todayKey)
+  const todayActivities = activities.filter(a => a.date === todayKey)
+  const unitForDistance = settings.distanceUnit || (settings.weightUnit === 'kg' ? 'km' : 'mi')
 
   const totals = todayMeals.reduce((t, m) => ({
     calories: t.calories + (m.calories || 0),
@@ -85,6 +90,19 @@ function Dashboard() {
       value: `${m.calories}`,
       detail: `${m.protein||0}P · ${m.carbs||0}C · ${m.fat||0}F`,
       sortAt: ts ? ts.getTime() : 0,
+    })
+  })
+  todayActivities.forEach(a => {
+    const t = a.startedAt ? new Date(a.startedAt) : null
+    entries.push({
+      kind: 'activity',
+      type: a.type ? a.type.toUpperCase() : 'ACTIVITY',
+      time: t ? t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '',
+      name: a.type === 'ride' ? 'Ride' : 'Run',
+      value: `${formatDistance(a.distanceM || 0, unitForDistance)} ${distanceUnit(unitForDistance)}`,
+      detail: `${formatDuration(a.durationSec || 0)} · ${(a.points || []).length} pts`,
+      accent: true,
+      sortAt: t ? t.getTime() : 0,
     })
   })
   todayExercises.forEach(ex => {
@@ -165,7 +183,7 @@ function Dashboard() {
       </div>
 
       {/* AI Coach insights */}
-      <Coach exercises={exercises} meals={meals} weighIns={weighIns} settings={settings} />
+      <Coach exercises={exercises} meals={meals} weighIns={weighIns} activities={activities} settings={settings} />
 
       {/* Quick stats row */}
       <div className="quick-stats">

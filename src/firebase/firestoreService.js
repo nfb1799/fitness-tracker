@@ -81,6 +81,34 @@ export async function getWorkoutsByDate(userId, date) {
   }))
 }
 
+// ============== Activities (runs / rides) ==============
+
+export async function getActivities(userId) {
+  const activitiesRef = collection(db, 'users', userId, 'activities')
+  const q = query(activitiesRef, orderBy('timestamp', 'desc'))
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+}
+
+export async function addActivity(userId, activity) {
+  const activitiesRef = collection(db, 'users', userId, 'activities')
+  const docRef = await addDoc(activitiesRef, {
+    ...activity,
+    timestamp: Timestamp.now(),
+  })
+  return docRef.id
+}
+
+export async function deleteActivity(userId, activityId) {
+  const ref = doc(db, 'users', userId, 'activities', activityId)
+  await deleteDoc(ref)
+}
+
+export async function updateActivity(userId, activityId, updates) {
+  const ref = doc(db, 'users', userId, 'activities', activityId)
+  await updateDoc(ref, updates)
+}
+
 // ============== Nutrition ==============
 
 export async function getNutrition(userId) {
