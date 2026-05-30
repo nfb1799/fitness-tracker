@@ -43,6 +43,17 @@ function FitBounds({ points }) {
   return null
 }
 
+// Pan/zoom imperatively when center changes (MapContainer's `center` is
+// initial-only — subsequent changes are ignored without this helper).
+function CenterOn({ center, zoom }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!center) return
+    map.setView(center, zoom ?? map.getZoom(), { animate: true })
+  }, [center?.[0], center?.[1], zoom, map])
+  return null
+}
+
 function Activities() {
   const { currentUser } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -62,7 +73,29 @@ function Activities() {
   const lastTickRef = useRef(null)
 
   // Live preview map center
-  const [center, setCenter] = useState([39.5, -98.35]) // continental US-ish fallback
+  const [center, setCenter] = useState(null) // null = haven't located yet
+  const [centerZoom, setCenterZoom] = useState(4)
+  const [locating, setLocating] = useState(false)
+
+  // One-shot location fetch. Used on mount (silently if already granted)
+  // and again when the user hits Start so the map snaps to them.
+  const fetchCurrentLocation = useCallback((opts = {}) => {
+    if (!('geolocation' in navigator)) return Promise.resolve(null)
+    setLocating(true)
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const c = [pos.coords.latitude, pos.coords.longitude]
+          setCenter(c)
+          setCenterZoom(16)
+          setLocating(false)
+          resolve(c)
+        },
+        () => { setLocating(false); resolve(null) },
+        { enableHighAccuracy: true, maximumAge: opts.maxAge ?? 30000, timeout: opts.timeout ?? 8000 }
+      )
+    })
+  }, [])
 
   // Load history + settings + restore in-progress recording
   useEffect(() => {
@@ -95,7 +128,17 @@ function Activities() {
         setPaused(true) // restored sessions are paused until user resumes
       }
     } catch { /* ignore */ }
-  }, [currentUser])
+
+    // If the user has already authorized geolocation, silently center the
+    // map on them on mount. If permission is 'prompt' we don't probe —
+    // we wait for them to hit Start so the browser prompt is tied to a
+    // clear user gesture.
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' }).then((res) => {
+        if (res.state === 'granted') fetchCurrentLocation()
+      }).catch(() => { /* Safari etc. — skip silently */ })
+    }
+  }, [currentUser, fetchCurrentLocation])
 
   // Tick the elapsed timer while recording and not paused
   useEffect(() => {
@@ -167,13 +210,16 @@ function Activities() {
 
   const handleStart = useCallback(() => {
     setError('')
+    // Snap the map to the user's location ASAP, regardless of permission
+    // state. If geolocation was never granted, this triggers the prompt.
+    fetchCurrentLocation({ maxAge: 0, timeout: 12000 })
     if (points.length === 0) {
       setStartedAt(Date.now())
       setElapsedSec(0)
     }
     setRecording(true)
     setPaused(false)
-  }, [points.length])
+  }, [points.length, fetchCurrentLocation])
 
   const handlePause = useCallback(() => setPaused(true), [])
   const handleResume = useCallback(() => {
@@ -192,7 +238,7 @@ function Activities() {
   }, [])
 
   const handleSave = useCallback(async () => {
-    if (!currentUser || points.length < 2) return
+    if (!currentUser) return
     const distanceM = trackDistance(points)
     const durationSec = Math.round(elapsedSec)
     const startDate = startedAt ? new Date(startedAt) : new Date()
@@ -274,8 +320,8 @@ function Activities() {
 
         <div className="tracker-map">
           <MapContainer
-            center={points.length ? [points[points.length - 1].lat, points[points.length - 1].lon] : center}
-            zoom={points.length ? 16 : 4}
+            center={center || [39.5, -98.35]}
+            zoom={center ? centerZoom : 4}
             scrollWheelZoom
             className="leaflet-host"
           >
@@ -292,11 +338,17 @@ function Activities() {
             {points.length > 0 && (
               <Marker position={[points[points.length - 1].lat, points[points.length - 1].lon]} />
             )}
-            <FitBounds points={points} />
+            {/* When the route has 2+ points, fit to the route. Otherwise
+                keep the map centered on the user's current location. */}
+            {points.length > 1
+              ? <FitBounds points={points} />
+              : <CenterOn center={center} zoom={centerZoom} />}
           </MapContainer>
           {!hasActiveSession && (
             <div className="tracker-map-hint">
-              Tap <strong>Start</strong> and grant location access to begin recording your route.
+              {locating
+                ? 'Finding your location…'
+                : (<>Tap <strong>Start</strong> and grant location access to begin recording your route.</>)}
             </div>
           )}
         </div>
@@ -310,18 +362,14 @@ function Activities() {
           {recording && !paused && (
             <>
               <button className="tracker-btn-secondary" onClick={handlePause}>Pause</button>
-              <button className="tracker-btn-finish" onClick={handleSave} disabled={points.length < 2}>
-                Finish
-              </button>
+              <button className="tracker-btn-finish" onClick={handleSave}>Finish</button>
             </>
           )}
           {(paused || (!recording && points.length > 0)) && (
             <>
               <button className="tracker-btn-secondary" onClick={handleDiscard}>Discard</button>
               <button className="add-btn" onClick={handleResume}>Resume</button>
-              <button className="tracker-btn-finish" onClick={handleSave} disabled={points.length < 2}>
-                Save
-              </button>
+              <button className="tracker-btn-finish" onClick={handleSave}>Save</button>
             </>
           )}
         </div>
@@ -382,21 +430,27 @@ function ActivityCard({ activity, unit, tilt, isOpen, onToggle, onDelete }) {
         <span className="activity-card-chev">{isOpen ? '▾' : '▸'}</span>
       </button>
 
-      {isOpen && pts.length > 1 && (
-        <div className="activity-card-map">
-          <MapContainer
-            center={[pts[0].lat, pts[0].lon]}
-            zoom={14}
-            scrollWheelZoom={false}
-            className="leaflet-host"
-          >
-            <TileLayer
-              attribution='&copy; OSM'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Polyline positions={pts.map(p => [p.lat, p.lon])} pathOptions={{ color: '#e07b5f', weight: 4, opacity: 0.95 }} />
-            <FitBounds points={pts} />
-          </MapContainer>
+      {isOpen && (
+        <div className="activity-card-body">
+          {pts.length > 1 ? (
+            <div className="activity-card-map">
+              <MapContainer
+                center={[pts[0].lat, pts[0].lon]}
+                zoom={14}
+                scrollWheelZoom={false}
+                className="leaflet-host"
+              >
+                <TileLayer
+                  attribution='&copy; OSM'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Polyline positions={pts.map(p => [p.lat, p.lon])} pathOptions={{ color: '#e07b5f', weight: 4, opacity: 0.95 }} />
+                <FitBounds points={pts} />
+              </MapContainer>
+            </div>
+          ) : (
+            <div className="activity-card-nomap mono">No route data recorded.</div>
+          )}
           <div className="activity-card-actions">
             <button className="delete-btn" onClick={onDelete}>Delete activity</button>
           </div>

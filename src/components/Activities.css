@@ -202,10 +202,21 @@
 
 .activity-dot { color: var(--text-dimmed); }
 
-.activity-card-map {
-  height: 220px;
+.activity-card-body {
   border-top: 1px solid var(--border-subtle);
   position: relative;
+}
+
+.activity-card-map {
+  height: 220px;
+  position: relative;
+}
+
+.activity-card-nomap {
+  padding: 18px 14px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .activity-card-actions {
