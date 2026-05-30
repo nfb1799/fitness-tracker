@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Personal-use fitness tracker.
+// Rule of thumb: a signed-in user can only touch their own /users/<uid>/...
+// document tree. Everything outside is off-limits.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The user's own document AND every subcollection / sub-document
+    // under it (workouts, nutrition, weighIns, activities, savedMeals,
+    // comments, etc.) — present and future.
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+    }
+
+    // Default deny for anything else.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
