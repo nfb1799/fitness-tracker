@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './Settings.css'
+import Icon from './Icon'
 import { useAuth } from '../contexts/AuthContext'
 import { getUserSettings, updateUserSettings, exportUserData, importUserData, getWorkouts, getNutrition } from '../firebase/firestoreService'
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
@@ -201,7 +202,7 @@ function Settings() {
 
       {/* Appearance Section */}
       <div className="settings-section">
-        <h3 className="section-title">🎨 Appearance</h3>
+        <h3 className="section-title"><Icon name="palette" size={14} /> Appearance</h3>
         <div className="theme-toggle-container">
           <span className="theme-label">Theme</span>
           <div className="theme-toggle">
@@ -209,13 +210,13 @@ function Settings() {
               className={`theme-btn ${settings.theme === 'light' ? 'active' : ''}`}
               onClick={() => handleChange('theme', 'light')}
             >
-              ☀️ Light
+              <Icon name="sun" size={14} /> Light
             </button>
             <button
               className={`theme-btn ${settings.theme === 'dark' ? 'active' : ''}`}
               onClick={() => handleChange('theme', 'dark')}
             >
-              🌙 Dark
+              <Icon name="moon" size={14} /> Dark
             </button>
           </div>
         </div>
@@ -223,7 +224,7 @@ function Settings() {
 
       {/* Profile Section */}
       <div className="settings-section">
-        <h3 className="section-title">👤 Profile</h3>
+        <h3 className="section-title"><Icon name="user" size={14} /> Profile</h3>
         <div className="settings-grid">
           <div className="setting-item">
             <label htmlFor="name">Name</label>
@@ -259,7 +260,7 @@ function Settings() {
 
       {/* Goals Section */}
       <div className="settings-section">
-        <h3 className="section-title">🎯 Goals</h3>
+        <h3 className="section-title"><Icon name="target" size={14} /> Goals</h3>
         
         <div className="settings-grid">
           <div className="setting-item">
@@ -324,7 +325,7 @@ function Settings() {
 
       {/* Data Management Section */}
       <div className="settings-section">
-        <h3 className="section-title">💾 Data Management</h3>
+        <h3 className="section-title"><Icon name="database" size={14} /> Data Management</h3>
         <div className="data-actions">
           <div className="data-action-group">
             <p className="action-description">Export your data for backup or transfer to another device.</p>
@@ -349,7 +350,7 @@ function Settings() {
 
       {/* Danger Zone */}
       <div className="settings-section danger-zone">
-        <h3 className="section-title">⚠️ Danger Zone</h3>
+        <h3 className="section-title"><Icon name="alert" size={14} /> Danger Zone</h3>
         <div className="danger-actions">
           <div className="danger-action">
             <div className="danger-info">

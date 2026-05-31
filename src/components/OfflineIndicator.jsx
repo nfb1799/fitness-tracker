@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './OfflineIndicator.css'
+import Icon from './Icon'
 
 function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(navigator.onLine)
@@ -30,7 +31,7 @@ function OfflineIndicator() {
 
   return (
     <div className={`offline-indicator ${isOnline ? 'online' : 'offline'}`}>
-      <span className="status-icon">{isOnline ? '✓' : '⚡'}</span>
+      <span className="status-icon"><Icon name={isOnline ? 'check' : 'bolt'} size={14} /></span>
       <span className="status-text">
         {isOnline ? 'Back online!' : 'You\'re offline - some features may be limited'}
       </span>

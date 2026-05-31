@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -43,6 +43,22 @@ function FitBounds({ points }) {
   return null
 }
 
+// Resolve the current --accent-primary CSS variable to an actual hex/rgb
+// string. Leaflet's SVG path attributes don't resolve CSS vars, so we
+// have to plug in a concrete color.
+function useAccentColor() {
+  return useMemo(() => {
+    if (typeof window === 'undefined') return '#6fb6a6'
+    const c = getComputedStyle(document.documentElement)
+      .getPropertyValue('--accent-primary')
+      .trim()
+    return c || '#6fb6a6'
+  }, [
+    // Re-evaluate when the theme toggles.
+    typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme'),
+  ])
+}
+
 // Pan/zoom imperatively when center changes (MapContainer's `center` is
 // initial-only — subsequent changes are ignored without this helper).
 function CenterOn({ center, zoom }) {
@@ -56,6 +72,7 @@ function CenterOn({ center, zoom }) {
 
 function Activities() {
   const { currentUser } = useAuth()
+  const accent = useAccentColor()
   const [loading, setLoading] = useState(true)
   const [activities, setActivities] = useState([])
   const [unit, setUnit] = useState('mi') // 'mi' or 'km'
@@ -332,7 +349,7 @@ function Activities() {
             {points.length > 1 && (
               <Polyline
                 positions={points.map(p => [p.lat, p.lon])}
-                pathOptions={{ color: '#e07b5f', weight: 4, opacity: 0.95 }}
+                pathOptions={{ color: accent, weight: 4, opacity: 0.95 }}
               />
             )}
             {points.length > 0 && (
@@ -389,6 +406,7 @@ function Activities() {
               key={a.id}
               activity={a}
               unit={unit}
+              accent={accent}
               tilt={i % 2 === 0 ? 'tilt-l-sm' : 'tilt-r-sm'}
               isOpen={selected?.id === a.id}
               onToggle={() => setSelected(selected?.id === a.id ? null : a)}
@@ -401,7 +419,7 @@ function Activities() {
   )
 }
 
-function ActivityCard({ activity, unit, tilt, isOpen, onToggle, onDelete }) {
+function ActivityCard({ activity, unit, accent, tilt, isOpen, onToggle, onDelete }) {
   const isRun = activity.type === 'run'
   const distM = activity.distanceM || 0
   const dur = activity.durationSec || 0
@@ -444,7 +462,7 @@ function ActivityCard({ activity, unit, tilt, isOpen, onToggle, onDelete }) {
                   attribution='&copy; OSM'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <Polyline positions={pts.map(p => [p.lat, p.lon])} pathOptions={{ color: '#e07b5f', weight: 4, opacity: 0.95 }} />
+                <Polyline positions={pts.map(p => [p.lat, p.lon])} pathOptions={{ color: accent || '#6fb6a6', weight: 4, opacity: 0.95 }} />
                 <FitBounds points={pts} />
               </MapContainer>
             </div>

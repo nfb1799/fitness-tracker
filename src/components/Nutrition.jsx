@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './Nutrition.css'
+import Icon from './Icon'
 import { useAuth } from '../contexts/AuthContext'
 import { getNutrition, addNutritionEntry, deleteNutritionEntry, updateNutritionEntry, getUserSettings, getSavedMeals, saveMeal } from '../firebase/firestoreService'
 
@@ -519,7 +520,7 @@ function Nutrition() {
                           onClick={() => startEditingMeal(meal)}
                           aria-label="Edit meal"
                         >
-                          ✎
+                          <Icon name="pencil" size={14} />
                         </button>
                         <button 
                           className="delete-btn"

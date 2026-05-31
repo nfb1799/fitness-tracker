@@ -8,6 +8,15 @@ body, input, textarea, select, button {
   font-family: var(--font-sans);
 }
 
+/* Inline SVG icons (replacing emojis) sit on the text baseline cleanly */
+.app-icon {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 4px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
 /* Mono treatment for any numeric stat */
 .stat-value,
 .goal-current,
@@ -190,7 +199,7 @@ button.primary,
   border-radius: 8px !important;
 }
 .calendar-day:hover { background: var(--bg-tertiary) !important; }
-.calendar-day.today { background: rgba(224, 123, 95, 0.15) !important; color: var(--accent-primary) !important; }
+.calendar-day.today { background: rgba(var(--accent-rgb), 0.15) !important; color: var(--accent-primary) !important; }
 .calendar-day.selected {
   background: var(--accent-primary) !important;
   color: var(--accent-ink) !important;

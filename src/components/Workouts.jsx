@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './Workouts.css'
+import Icon from './Icon'
 import { useAuth } from '../contexts/AuthContext'
 import { getWorkouts, addWorkout, deleteWorkout, updateWorkout, updateWorkoutsOrder } from '../firebase/firestoreService'
 
@@ -613,7 +614,7 @@ function Workouts() {
             onClick={() => setShowCopyModal(true)}
             title="Copy workout from another day"
           >
-            📋 Copy
+            <Icon name="copy" size={14} /> Copy
           </button>
         </div>
       </div>
@@ -1183,7 +1184,7 @@ function ExerciseCardView({ exercise, onEdit, onDelete, formatTimeDisplay }) {
           </div>
         </div>
         <div className="ex-actions">
-          <button className="edit-btn" onClick={onEdit} aria-label="Edit">✎</button>
+          <button className="edit-btn" onClick={onEdit} aria-label="Edit"><Icon name="pencil" size={14} /></button>
           <button className="delete-btn" onClick={onDelete} aria-label="Delete">×</button>
         </div>
       </div>

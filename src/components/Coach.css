@@ -2,7 +2,7 @@
   padding: 16px 18px !important;
   position: relative;
   background: linear-gradient(180deg, var(--bg-accent) 0%, var(--bg-secondary) 70%) !important;
-  border-color: rgba(199, 90, 62, 0.22) !important;
+  border-color: rgba(var(--accent-rgb), 0.22) !important;
 }
 
 [data-theme="light"] .coach-card {

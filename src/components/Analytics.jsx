@@ -17,6 +17,7 @@ import {
   Area
 } from 'recharts'
 import './Analytics.css'
+import Icon from './Icon'
 import { useAuth } from '../contexts/AuthContext'
 import { getWorkouts, getNutrition, getWeighIns, getUserSettings } from '../firebase/firestoreService'
 
@@ -302,19 +303,19 @@ function Analytics() {
             className={`tab-btn ${activeTab === 'workouts' ? 'active' : ''}`}
             onClick={() => setActiveTab('workouts')}
           >
-            💪 Workouts
+            <Icon name="dumbbell" size={14} /> Workouts
           </button>
           <button
             className={`tab-btn ${activeTab === 'nutrition' ? 'active' : ''}`}
             onClick={() => setActiveTab('nutrition')}
           >
-            🍎 Nutrition
+            <Icon name="apple" size={14} /> Nutrition
           </button>
           <button
             className={`tab-btn ${activeTab === 'weight' ? 'active' : ''}`}
             onClick={() => setActiveTab('weight')}
           >
-            ⚖️ Weight
+            <Icon name="scale" size={14} /> Weight
           </button>
         </div>
 

@@ -18,7 +18,7 @@
   --bg-secondary: #18181b;
   --bg-tertiary: #1f1f23;
   --bg-hover: #222226;
-  --bg-accent: #241a17;
+  --bg-accent: #14201d;          /* cool-tinted dark card */
   --border-color: #2a2a2e;
   --border-subtle: #222226;
   --border-hover: #3a3a3e;
@@ -26,10 +26,11 @@
   --text-secondary: #ededec;
   --text-muted: #9b968f;
   --text-dimmed: #5e5a55;
-  --accent-color: #e07b5f;
-  --accent-primary: #e07b5f;
-  --accent-hover: #d06a4e;
+  --accent-color: #6fb6a6;       /* muted seafoam teal */
+  --accent-primary: #6fb6a6;
+  --accent-hover: #84c4b6;
   --accent-ink: #0e0e10;
+  --accent-rgb: 111, 182, 166;   /* for rgba(var(--accent-rgb), α) */
   --header-bg: #0e0e10;
 
   /* Status colors */
@@ -38,24 +39,24 @@
   --danger-bg: #2a1a1a;
   --danger-border: #3a2222;
 
-  /* Macro colors (warm-tinted for dark) */
-  --calories-color: #e07b5f;
-  --protein-color: #e07b5f;
+  /* Macro colors — neutralized away from any one hue */
+  --calories-color: #6fb6a6;
+  --protein-color: #ededec;
   --carbs-color: #c2b8a3;
-  --fat-color: #d4a76a;
+  --fat-color: #d4c89a;
 
   /* Fonts */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
-/* Light theme — warm paper, same coral accent */
+/* Light theme — warm paper, same teal accent (darker for contrast on cream) */
 [data-theme="light"] {
   --bg-primary: #f5f2ec;    /* warm paper */
   --bg-secondary: #ffffff;  /* card surface */
   --bg-tertiary: #ece8e0;   /* subtle inset */
   --bg-hover: #eae5dc;
-  --bg-accent: #fbeae3;     /* accent-tinted card */
+  --bg-accent: #e0ece8;     /* cool-tinted card */
   --border-color: #d9d3c8;
   --border-subtle: #e6e0d4;
   --border-hover: #c4bdaf;
@@ -63,19 +64,20 @@
   --text-secondary: #1d1d1f;
   --text-muted: #6b665d;
   --text-dimmed: #9d978a;
-  --accent-color: #c75a3e;       /* darker coral so it passes contrast on cream */
-  --accent-primary: #c75a3e;
-  --accent-hover: #b04a30;
+  --accent-color: #2e7d6a;       /* deeper teal for cream contrast */
+  --accent-primary: #2e7d6a;
+  --accent-hover: #236655;
   --accent-ink: #ffffff;
+  --accent-rgb: 46, 125, 106;
   --header-bg: #f5f2ec;
   --success-color: #3f9d6a;
   --danger-color: #c0432f;
   --danger-bg: #fbecea;
   --danger-border: #e9b9b1;
-  --calories-color: #c75a3e;
-  --protein-color: #c75a3e;
+  --calories-color: #2e7d6a;
+  --protein-color: #1d1d1f;
   --carbs-color: #6b665d;
-  --fat-color: #9b7a3a;
+  --fat-color: #8a7340;
 }
 
 body {
@@ -145,7 +147,7 @@ button {
 
 .hy-card.accent {
   background: var(--bg-accent);
-  border-color: rgba(224, 123, 95, 0.25);
+  border-color: rgba(var(--accent-rgb), 0.25);
 }
 
 .hy-card.tilt-l { transform: rotate(-0.4deg); }
@@ -304,7 +306,7 @@ button {
   line-height: 1;
   border: none;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(224, 123, 95, .35), 0 2px 4px rgba(0, 0, 0, .4);
+  box-shadow: 0 6px 18px rgba(var(--accent-rgb), .35), 0 2px 4px rgba(0, 0, 0, .4);
   z-index: 50;
 }
 .hy-fab:hover { background: var(--accent-hover); }
@@ -327,7 +329,7 @@ input[type="number"], input[type="date"], textarea, select {
 input:focus, textarea:focus, select:focus { border-color: var(--accent-primary); }
 input::placeholder, textarea::placeholder { color: var(--text-dimmed); }
 
-::selection { background: rgba(224, 123, 95, 0.35); color: var(--text-primary); }
+::selection { background: rgba(var(--accent-rgb), 0.35); color: var(--text-primary); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
