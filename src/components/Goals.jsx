@@ -140,15 +140,17 @@ function Goals() {
           editing={editing}
           onChange={(v) => handleChange('calorieGoal', parseInt(v) || 0)}
         />
-        <GoalRow
-          tilt="l"
-          label="Protein"
-          sub="grams/day"
-          value={form.proteinGoal}
-          unit="g"
-          editing={editing}
-          onChange={(v) => handleChange('proteinGoal', parseInt(v) || 0)}
-        />
+        {form.trackMacros && (
+          <GoalRow
+            tilt="l"
+            label="Protein"
+            sub="grams/day"
+            value={form.proteinGoal}
+            unit="g"
+            editing={editing}
+            onChange={(v) => handleChange('proteinGoal', parseInt(v) || 0)}
+          />
+        )}
         <GoalRow
           tilt="r"
           label="Steps"

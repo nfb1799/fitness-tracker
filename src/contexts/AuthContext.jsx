@@ -42,6 +42,7 @@ export function AuthProvider({ children }) {
         calorieGoal: 2000,
         proteinGoal: 150,
         workoutDaysGoal: 4,
+        trackMacros: false,
         weightUnit: 'lbs',
         heightUnit: 'in',
         theme: 'dark'
@@ -82,6 +83,7 @@ export function AuthProvider({ children }) {
           calorieGoal: 2000,
           proteinGoal: 150,
           workoutDaysGoal: 4,
+          trackMacros: false,
           weightUnit: 'lbs',
           heightUnit: 'in',
           theme: 'dark'

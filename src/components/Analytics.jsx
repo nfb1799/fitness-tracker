@@ -72,6 +72,7 @@ function Analytics() {
   const [weighIns, setWeighIns] = useState([])
   const [settings, setSettings] = useState({ calorieGoal: 2000, proteinGoal: 150 })
   const [selectedExercise, setSelectedExercise] = useState('')
+  const macrosOn = !!settings.trackMacros
 
   useEffect(() => {
     const loadData = async () => {
@@ -467,18 +468,22 @@ function Analytics() {
               <span className="stat-value">{nutritionStats.averages.calories}</span>
               <span className="stat-label">Avg Calories</span>
             </div>
-            <div className="stat-card">
-              <span className="stat-value">{nutritionStats.averages.protein}g</span>
-              <span className="stat-label">Avg Protein</span>
-            </div>
+            {macrosOn && (
+              <div className="stat-card">
+                <span className="stat-value">{nutritionStats.averages.protein}g</span>
+                <span className="stat-label">Avg Protein</span>
+              </div>
+            )}
             <div className="stat-card">
               <span className="stat-value">{nutritionStats.daysLogged}</span>
               <span className="stat-label">Days Logged</span>
             </div>
-            <div className="stat-card">
-              <span className="stat-value">{nutritionStats.daysAtProteinGoal}</span>
-              <span className="stat-label">Days Hit Protein</span>
-            </div>
+            {macrosOn && (
+              <div className="stat-card">
+                <span className="stat-value">{nutritionStats.daysAtProteinGoal}</span>
+                <span className="stat-label">Days Hit Protein</span>
+              </div>
+            )}
           </div>
 
           {nutritionStats.dailyData.length > 0 ? (
@@ -515,6 +520,7 @@ function Analytics() {
               </div>
 
               {/* Protein Chart */}
+              {macrosOn && (
               <div className="chart-container">
                 <h3 className="chart-title">Daily Protein</h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -544,8 +550,10 @@ function Analytics() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              )}
 
               {/* Macro Distribution Pie Chart */}
+              {macrosOn && (
               <div className="chart-container">
                 <h3 className="chart-title">Average Macro Distribution</h3>
                 <div className="macro-chart-wrapper">
@@ -587,6 +595,7 @@ function Analytics() {
                   </div>
                 </div>
               </div>
+              )}
             </>
           ) : (
             <div className="no-data-container">

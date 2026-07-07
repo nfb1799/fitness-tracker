@@ -120,6 +120,7 @@ function ruleWorkoutsThisWeek(exercises, settings) {
 }
 
 function ruleProtein(meals, settings) {
+  if (!settings.trackMacros) return null
   const goal = settings.proteinGoal
   if (!goal) return null
   const recent = lastNDays(meals, 7)
@@ -300,35 +301,6 @@ function ruleConsistency(meals, exercises) {
   return null
 }
 
-function ruleActivities(activities, settings) {
-  if (!activities || activities.length === 0) return null
-  const recent = lastNDays(activities, 14)
-  if (recent.length === 0) {
-    const last = activities.sort((a, b) => new Date(b.date) - new Date(a.date))[0]
-    const gap = daysAgo(last.date)
-    if (gap > 14) {
-      return {
-        id: 'activity-gap',
-        kind: 'nudge',
-        priority: 55,
-        headline: `${gap} days since your last ${last.type || 'activity'}`,
-        detail: 'Get outside — even a short loop counts.',
-      }
-    }
-    return null
-  }
-  const totalM = recent.reduce((s, a) => s + (a.distanceM || 0), 0)
-  const unit = settings.distanceUnit || (settings.weightUnit === 'kg' ? 'km' : 'mi')
-  const totalDisp = unit === 'km' ? (totalM / 1000).toFixed(1) : (totalM / 1609.344).toFixed(1)
-  return {
-    id: 'activity-volume',
-    kind: 'win',
-    priority: 50,
-    headline: `${recent.length} ${recent.length === 1 ? 'activity' : 'activities'} · ${totalDisp} ${unit} in 2 weeks`,
-    detail: 'Outdoor mileage is logged. Trend chart on the Trends tab.',
-  }
-}
-
 function ruleSparse(meals, exercises, weighIns) {
   const total = meals.length + exercises.length + weighIns.length
   if (total >= 5) return null
@@ -343,7 +315,7 @@ function ruleSparse(meals, exercises, weighIns) {
 
 // ─── public API ─────────────────────────────────────────────────────
 
-export function generateInsights({ exercises = [], meals = [], weighIns = [], activities = [], settings = {} }) {
+export function generateInsights({ exercises = [], meals = [], weighIns = [], settings = {} }) {
   const rules = [
     ruleRecentPR(exercises),
     ruleNoWorkoutGap(exercises, settings),
@@ -352,7 +324,6 @@ export function generateInsights({ exercises = [], meals = [], weighIns = [], ac
     ruleCalories(meals, settings),
     ruleWeightTrend(weighIns, settings),
     ruleWorkoutsThisWeek(exercises, settings),
-    ruleActivities(activities, settings),
     ruleStreak(exercises),
     ruleConsistency(meals, exercises),
     ruleSparse(meals, exercises, weighIns),

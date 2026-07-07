@@ -18,6 +18,7 @@ function Settings() {
     weightUnit: 'lbs',
     heightUnit: 'in',
     targetWeight: '',
+    trackMacros: false,
     theme: localStorage.getItem('theme') || 'light'
   })
 
@@ -124,6 +125,7 @@ function Settings() {
           calorieGoal: 2000,
           proteinGoal: 150,
           workoutDaysGoal: 4,
+          trackMacros: false,
           weightUnit: 'lbs',
           heightUnit: 'in',
           theme: 'dark'
@@ -261,7 +263,30 @@ function Settings() {
       {/* Goals Section */}
       <div className="settings-section">
         <h3 className="section-title"><Icon name="target" size={14} /> Goals</h3>
-        
+
+        <div className="theme-toggle-container macro-toggle-container">
+          <div className="macro-toggle-info">
+            <span className="theme-label">Track Macros</span>
+            <span className="macro-toggle-description">
+              Log protein, carbs, and fat alongside calories
+            </span>
+          </div>
+          <div className="theme-toggle">
+            <button
+              className={`theme-btn ${!settings.trackMacros ? 'active' : ''}`}
+              onClick={() => handleChange('trackMacros', false)}
+            >
+              Off
+            </button>
+            <button
+              className={`theme-btn ${settings.trackMacros ? 'active' : ''}`}
+              onClick={() => handleChange('trackMacros', true)}
+            >
+              On
+            </button>
+          </div>
+        </div>
+
         <div className="settings-grid">
           <div className="setting-item">
             <label htmlFor="targetWeight">Target Weight</label>
@@ -289,19 +314,21 @@ function Settings() {
               <span className="unit-label">cal</span>
             </div>
           </div>
-          <div className="setting-item">
-            <label htmlFor="proteinGoal">Protein Goal</label>
-            <div className="input-with-unit">
-              <input
-                type="number"
-                id="proteinGoal"
-                placeholder="150"
-                value={settings.proteinGoal}
-                onChange={(e) => handleChange('proteinGoal', parseInt(e.target.value) || 0)}
-              />
-              <span className="unit-label">g</span>
+          {settings.trackMacros && (
+            <div className="setting-item">
+              <label htmlFor="proteinGoal">Protein Goal</label>
+              <div className="input-with-unit">
+                <input
+                  type="number"
+                  id="proteinGoal"
+                  placeholder="150"
+                  value={settings.proteinGoal}
+                  onChange={(e) => handleChange('proteinGoal', parseInt(e.target.value) || 0)}
+                />
+                <span className="unit-label">g</span>
+              </div>
             </div>
-          </div>
+          )}
           <div className="setting-item">
             <label htmlFor="workoutDaysGoal">Weekly Workout Days</label>
             <div className="input-with-unit">
