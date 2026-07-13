@@ -48,12 +48,10 @@ function Auth() {
         case 'auth/weak-password':
           setError('Password is too weak')
           break
+        // Keep these merged into one generic message so we don't reveal
+        // whether an email is registered (user enumeration).
         case 'auth/user-not-found':
-          setError('No account found with this email')
-          break
         case 'auth/wrong-password':
-          setError('Incorrect password')
-          break
         case 'auth/invalid-credential':
           setError('Invalid email or password')
           break
@@ -228,6 +226,9 @@ function Auth() {
         >
           Continue as Guest
         </button>
+        <p className="auth-guest-note">
+          Guest data lives only on this device and can't be recovered if you log out or clear your browser.
+        </p>
 
         {isLogin && (
           <button 

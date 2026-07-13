@@ -336,3 +336,65 @@ input::placeholder, textarea::placeholder { color: var(--text-dimmed); }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+/* ───────────────────────────────────────────────────────────
+   Toasts (transient feedback)
+   ─────────────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  left: 50%;
+  bottom: 88px;               /* clear of the bottom tab bar */
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+  width: max-content;
+  max-width: min(92vw, 420px);
+  pointer-events: none;
+}
+.toast {
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--menu-shadow);
+  text-align: center;
+  animation: toast-in 0.18s ease;
+}
+.toast-error {
+  color: var(--danger-color);
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+.toast-success {
+  color: var(--success-color);
+  border-color: rgba(var(--accent-rgb), 0.3);
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ───────────────────────────────────────────────────────────
+   Error boundary fallback
+   ─────────────────────────────────────────────────────────── */
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.error-boundary-card {
+  max-width: 380px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px 24px;
+}
+.error-boundary-card p { color: var(--text-muted); font-size: 14px; margin: 0; }

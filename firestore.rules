@@ -2,20 +2,65 @@ rules_version = '2';
 
 // Personal-use fitness tracker.
 // Rule of thumb: a signed-in user can only touch their own /users/<uid>/...
-// document tree. Everything outside is off-limits.
+// document tree. On top of that ownership guarantee we add lightweight
+// type/size validation on the fields the app actually writes.
+//
+// Validation style: every field check is guarded by a presence test
+// (`!('x' in data) || ...`), so absent/optional/legacy fields never cause a
+// legitimate write to be rejected — we only reject wrong types or absurd sizes.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // The user's own document AND every subcollection / sub-document
-    // under it (workouts, nutrition, weighIns, activities, savedMeals,
-    // comments, etc.) — present and future.
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
-    // Default deny for anything else.
+    function strOk(val, maxLen) {
+      return val is string && val.size() <= maxLen;
+    }
+
+    match /users/{userId} {
+      // Profile document. `settings` is intentionally free-form (it grows over
+      // time), so we only guard the two top-level identity strings.
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId)
+        && (!('displayName' in request.resource.data) || strOk(request.resource.data.displayName, 100))
+        && (!('email' in request.resource.data) || strOk(request.resource.data.email, 320));
+
+      match /workouts/{workoutId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && (!('name' in request.resource.data) || strOk(request.resource.data.name, 200))
+          && (!('date' in request.resource.data) || strOk(request.resource.data.date, 20));
+      }
+
+      match /nutrition/{entryId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && (!('name' in request.resource.data) || strOk(request.resource.data.name, 200))
+          && (!('calories' in request.resource.data) || request.resource.data.calories is number)
+          && (!('date' in request.resource.data) || strOk(request.resource.data.date, 20));
+      }
+
+      match /weighins/{weighInId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && (!('weight' in request.resource.data) || request.resource.data.weight is number)
+          && (!('note' in request.resource.data) || strOk(request.resource.data.note, 500))
+          && (!('date' in request.resource.data) || strOk(request.resource.data.date, 20));
+      }
+
+      match /savedMeals/{mealId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && (!('name' in request.resource.data) || strOk(request.resource.data.name, 200))
+          && (!('displayName' in request.resource.data) || strOk(request.resource.data.displayName, 200));
+      }
+    }
+
+    // Default deny for anything else (including any subcollection not listed
+    // above — add an explicit block here if the app grows new ones).
     match /{document=**} {
       allow read, write: if false;
     }

@@ -19,15 +19,8 @@ import {
 import './Analytics.css'
 import Icon from './Icon'
 import { useAuth } from '../contexts/AuthContext'
+import { getLocalDateString } from '../lib/date'
 import { getWorkouts, getNutrition, getWeighIns, getUserSettings } from '../firebase/firestoreService'
-
-// Helper to get local date string
-const getLocalDateString = (date = new Date()) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 // Helper to format date for display
 const formatDate = (dateStr, short = false) => {
@@ -51,7 +44,7 @@ const TIME_RANGES = [
 
 // Chart colors
 const COLORS = {
-  primary: '#646cff',
+  primary: 'var(--accent-primary)',
   secondary: '#8b5cf6',
   success: '#22c55e',
   warning: '#f59e0b',
@@ -71,7 +64,7 @@ function Analytics() {
   const [nutrition, setNutrition] = useState([])
   const [weighIns, setWeighIns] = useState([])
   const [settings, setSettings] = useState({ calorieGoal: 2000, proteinGoal: 150 })
-  const [selectedExercise, setSelectedExercise] = useState('')
+  const [selectedExerciseName, setSelectedExerciseName] = useState('')
   const macrosOn = !!settings.trackMacros
 
   useEffect(() => {
@@ -102,20 +95,30 @@ function Analytics() {
   // Calculate date range
   const dateRange = useMemo(() => {
     const today = new Date()
-    let startDate = new Date()
-    
+
     if (timeRange === 'all') {
-      startDate = new Date('2020-01-01')
-    } else {
-      const days = parseInt(timeRange)
-      startDate.setDate(today.getDate() - days)
+      // Start from the earliest logged date across all data (dates are stored
+      // as sortable YYYY-MM-DD strings), falling back to today if empty.
+      const allDates = [
+        ...workouts.map(w => w.date),
+        ...nutrition.map(n => n.date),
+        ...weighIns.map(w => w.date),
+      ].filter(Boolean)
+      const start = allDates.length
+        ? allDates.reduce((a, b) => (a < b ? a : b))
+        : getLocalDateString(today)
+      return { start, end: getLocalDateString(today) }
     }
-    
+
+    const startDate = new Date()
+    const days = parseInt(timeRange)
+    startDate.setDate(today.getDate() - days)
+
     return {
       start: getLocalDateString(startDate),
       end: getLocalDateString(today)
     }
-  }, [timeRange])
+  }, [timeRange, workouts, nutrition, weighIns])
 
   // Filter data by date range
   const filteredWorkouts = useMemo(() => {
@@ -136,12 +139,11 @@ function Analytics() {
     return names.sort()
   }, [filteredWorkouts])
 
-  // Set default selected exercise
-  useEffect(() => {
-    if (exerciseNames.length > 0 && !selectedExercise) {
-      setSelectedExercise(exerciseNames[0])
-    }
-  }, [exerciseNames, selectedExercise])
+  // Effective selection: fall back to the first available exercise, and never
+  // leave a stale name selected when the time-range filter drops it.
+  const selectedExercise = exerciseNames.includes(selectedExerciseName)
+    ? selectedExerciseName
+    : (exerciseNames[0] || '')
 
   // Workout analytics
   const workoutStats = useMemo(() => {
@@ -359,8 +361,8 @@ function Analytics() {
               <div className="chart-header">
                 <h3 className="chart-title">Exercise Progress</h3>
                 <select 
-                  value={selectedExercise} 
-                  onChange={(e) => setSelectedExercise(e.target.value)}
+                  value={selectedExercise}
+                  onChange={(e) => setSelectedExerciseName(e.target.value)}
                   className="exercise-selector"
                 >
                   {exerciseNames.map(name => (
@@ -570,8 +572,8 @@ function Analytics() {
                         label={({ name, percent }) => `${name} ${percent}%`}
                         labelLine={{ stroke: 'var(--text-muted)' }}
                       >
-                        {nutritionStats.macroData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        {nutritionStats.macroData.map((entry) => (
+                          <Cell key={entry.name} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip 
@@ -586,8 +588,8 @@ function Analytics() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="macro-legend">
-                    {nutritionStats.macroData.map((macro, index) => (
-                      <div key={index} className="macro-legend-item">
+                    {nutritionStats.macroData.map((macro) => (
+                      <div key={macro.name} className="macro-legend-item">
                         <span className="macro-dot" style={{ backgroundColor: macro.color }}></span>
                         <span>{macro.name}: {macro.value}g ({macro.percent}%)</span>
                       </div>

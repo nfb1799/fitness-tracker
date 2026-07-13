@@ -1,19 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import './Nutrition.css'
 import Icon from './Icon'
 import { useAuth } from '../contexts/AuthContext'
+import { getLocalDateString } from '../lib/date'
+import { useToast } from '../contexts/ToastContext'
 import { getNutrition, addNutritionEntry, deleteNutritionEntry, updateNutritionEntry, getUserSettings, getSavedMeals, saveMeal } from '../firebase/firestoreService'
-
-// Helper to get local date string (YYYY-MM-DD format)
-const getLocalDateString = (date = new Date()) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 function Nutrition() {
   const { currentUser } = useAuth()
+  const showToast = useToast()
   const [meals, setMeals] = useState([])
   const [savedMeals, setSavedMeals] = useState([])
   const [loading, setLoading] = useState(true)
@@ -28,7 +23,6 @@ function Nutrition() {
   const [carbs, setCarbs] = useState('')
   const [fat, setFat] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [filteredSuggestions, setFilteredSuggestions] = useState([])
   const [editingMeal, setEditingMeal] = useState(null)
   const [editForm, setEditForm] = useState({})
   const inputRef = useRef(null)
@@ -75,18 +69,12 @@ function Nutrition() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Filter suggestions based on input
-  useEffect(() => {
-    if (foodName.trim().length > 0) {
-      const filtered = savedMeals.filter(meal => 
-        meal.displayName.toLowerCase().includes(foodName.toLowerCase())
-      ).slice(0, 8)
-      setFilteredSuggestions(filtered)
-      setShowSuggestions(filtered.length > 0)
-    } else {
-      setFilteredSuggestions([])
-      setShowSuggestions(false)
-    }
+  // Suggestions are derived from the current input — no effect/state round-trip.
+  const filteredSuggestions = useMemo(() => {
+    if (foodName.trim().length === 0) return []
+    return savedMeals
+      .filter(meal => meal.displayName.toLowerCase().includes(foodName.toLowerCase()))
+      .slice(0, 8)
   }, [foodName, savedMeals])
 
   const handleSelectSuggestion = (meal) => {
@@ -133,6 +121,7 @@ function Nutrition() {
       setFat('')
     } catch (error) {
       console.error('Error adding meal:', error)
+      showToast('Could not save meal. Try again.', 'error')
     }
   }
 
@@ -142,6 +131,7 @@ function Nutrition() {
       setMeals(meals.filter(meal => meal.id !== id))
     } catch (error) {
       console.error('Error deleting meal:', error)
+      showToast('Could not delete meal.', 'error')
     }
   }
 
@@ -185,6 +175,7 @@ function Nutrition() {
       cancelEditingMeal()
     } catch (error) {
       console.error('Error updating meal:', error)
+      showToast('Could not update meal.', 'error')
     }
   }
 
@@ -215,7 +206,7 @@ function Nutrition() {
     if (dateInputRef.current) {
       try {
         dateInputRef.current.showPicker()
-      } catch (e) {
+      } catch {
         // Fallback for browsers that don't support showPicker
         dateInputRef.current.focus()
         dateInputRef.current.click()
@@ -250,7 +241,7 @@ function Nutrition() {
           ‹
         </button>
         <div className="date-display">
-          <span className="date-label" onClick={handleDateLabelClick}>{formatDisplayDate(selectedDate)}</span>
+          <span className="date-label" role="button" tabIndex={0} onClick={handleDateLabelClick} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDateLabelClick() } }}>{formatDisplayDate(selectedDate)}</span>
           <input
             ref={dateInputRef}
             type="date"
@@ -358,13 +349,11 @@ function Nutrition() {
               id="food-name"
               placeholder="e.g., Grilled Chicken, Rice..."
               value={foodName}
-              onChange={(e) => setFoodName(e.target.value)}
-              onFocus={() => {
-                if (filteredSuggestions.length > 0) setShowSuggestions(true)
-              }}
+              onChange={(e) => { setFoodName(e.target.value); setShowSuggestions(true) }}
+              onFocus={() => setShowSuggestions(true)}
               autoComplete="off"
             />
-            {showSuggestions && (
+            {showSuggestions && filteredSuggestions.length > 0 && (
               <div className="suggestions-dropdown" ref={suggestionsRef}>
                 {filteredSuggestions.map((meal) => (
                   <button

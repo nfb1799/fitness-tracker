@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import './Goals.css'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { getUserSettings, updateUserSettings, getWeighIns } from '../firebase/firestoreService'
 
 function Goals() {
   const { currentUser } = useAuth()
+  const showToast = useToast()
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [weighIns, setWeighIns] = useState([])
@@ -12,11 +14,8 @@ function Goals() {
     calorieGoal: 2000,
     proteinGoal: 150,
     workoutDaysGoal: 4,
-    cardioMinutesGoal: 90,
-    stepsGoal: 8000,
     targetWeight: '',
     targetDate: '',
-    weightUnit: 'lbs',
   })
 
   useEffect(() => {
@@ -45,8 +44,10 @@ function Goals() {
     try {
       await updateUserSettings(currentUser.uid, form)
       setEditing(false)
+      showToast('Goals saved', 'success')
     } catch (err) {
       console.error('Error saving goals:', err)
+      showToast('Could not save goals. Try again.', 'error')
     }
   }
 
@@ -62,7 +63,7 @@ function Goals() {
     if (totalChange > 0) {
       const made = isCutting ? (start - current) : (current - start)
       progressPct = Math.max(0, Math.min(100, (made / totalChange) * 100))
-      progressLine = `${Math.abs(made).toFixed(1)} / ${totalChange.toFixed(1)} ${form.weightUnit}`
+      progressLine = `${Math.abs(made).toFixed(1)} / ${totalChange.toFixed(1)} lbs`
     }
   }
 
@@ -94,11 +95,11 @@ function Goals() {
                   onChange={(e) => handleChange('targetWeight', e.target.value)}
                   className="goal-input"
                 />
-                <span className="mono goal-unit">{form.weightUnit}</span>
+                <span className="mono goal-unit">lbs</span>
               </div>
             ) : (
               <div className="goal-title">
-                {form.targetWeight ? `Reach ${form.targetWeight} ${form.weightUnit}` : 'Set a target weight'}
+                {form.targetWeight ? `Reach ${form.targetWeight} lbs` : 'Set a target weight'}
               </div>
             )}
             {editing ? (
@@ -151,15 +152,6 @@ function Goals() {
             onChange={(v) => handleChange('proteinGoal', parseInt(v) || 0)}
           />
         )}
-        <GoalRow
-          tilt="r"
-          label="Steps"
-          sub="daily baseline"
-          value={form.stepsGoal}
-          unit=""
-          editing={editing}
-          onChange={(v) => handleChange('stepsGoal', parseInt(v) || 0)}
-        />
       </div>
 
       {/* Weekly targets */}
@@ -173,15 +165,6 @@ function Goals() {
           unit="×"
           editing={editing}
           onChange={(v) => handleChange('workoutDaysGoal', parseInt(v) || 0)}
-        />
-        <GoalRow
-          tilt="r"
-          label="Cardio"
-          sub="minutes/week"
-          value={form.cardioMinutesGoal}
-          unit="min"
-          editing={editing}
-          onChange={(v) => handleChange('cardioMinutesGoal', parseInt(v) || 0)}
         />
       </div>
 

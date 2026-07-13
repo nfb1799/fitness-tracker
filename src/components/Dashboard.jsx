@@ -1,17 +1,10 @@
 import { useState, useEffect } from 'react'
 import './Dashboard.css'
 import { useAuth } from '../contexts/AuthContext'
+import { getLocalDateString } from '../lib/date'
 import {
   getWorkouts, getNutrition, getUserSettings, getWeighIns
 } from '../firebase/firestoreService'
-import Coach from './Coach'
-
-const getLocalDateString = (date = new Date()) => {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
 
 function Dashboard() {
   const { currentUser } = useAuth()
@@ -24,7 +17,6 @@ function Dashboard() {
     proteinGoal: 150,
     workoutDaysGoal: 4,
     targetWeight: null,
-    weightUnit: 'lbs',
   })
 
   useEffect(() => {
@@ -60,7 +52,7 @@ function Dashboard() {
     fat:      t.fat      + (m.fat      || 0),
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 })
 
-  const calLeft = Math.max(0, settings.calorieGoal - totals.calories)
+  const calRemaining = settings.calorieGoal - totals.calories
   const proteinPct = Math.min(1, totals.protein / settings.proteinGoal)
   const macrosOn = !!settings.trackMacros
 
@@ -79,6 +71,7 @@ function Dashboard() {
   todayMeals.forEach(m => {
     const ts = m.timestamp?.toDate ? m.timestamp.toDate() : (m.localTimestamp ? new Date(m.localTimestamp) : null)
     entries.push({
+      id: `meal-${m.id}`,
       kind: 'meal',
       type: 'MEAL',
       time: ts ? ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '',
@@ -95,6 +88,7 @@ function Dashboard() {
       : (ex.measurementValue || ex.resistance || '')
     const unit = ex.measurementUnit || 'lb'
     entries.push({
+      id: `workout-${ex.id}`,
       kind: 'workout',
       type: 'WORKOUT',
       time: '',
@@ -140,7 +134,9 @@ function Dashboard() {
             {totals.calories.toLocaleString()}
           </span>
           <span className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            / {settings.calorieGoal.toLocaleString()} kcal · {calLeft.toLocaleString()} left
+            / {settings.calorieGoal.toLocaleString()} kcal · {calRemaining >= 0
+              ? `${calRemaining.toLocaleString()} left`
+              : `${Math.abs(calRemaining).toLocaleString()} over`}
           </span>
         </div>
 
@@ -167,9 +163,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* AI Coach insights */}
-      <Coach exercises={exercises} meals={meals} weighIns={weighIns} settings={settings} />
-
       {/* Quick stats row */}
       <div className="quick-stats">
         <div className="hy-card quick-stat">
@@ -180,7 +173,7 @@ function Dashboard() {
         <div className="hy-card quick-stat">
           <span className="hy-mini-label">Weight</span>
           <span className="hy-numeric quick-stat-value">{latestWeight ?? '—'}</span>
-          <span className="hy-mini-label">{settings.weightUnit || 'lb'}</span>
+          <span className="hy-mini-label">lb</span>
         </div>
       </div>
 
@@ -201,7 +194,7 @@ function Dashboard() {
       ) : (
         <div className="entries-list">
           {entries.map((e, i) => (
-            <div key={i} className={`hy-card entry-card ${i % 2 ? 'tilt-r-sm' : 'tilt-l-sm'} ${e.accent ? 'accent' : ''}`}>
+            <div key={e.id} className={`hy-card entry-card ${i % 2 ? 'tilt-r-sm' : 'tilt-l-sm'} ${e.accent ? 'accent' : ''}`}>
               <div className="entry-head">
                 <div>
                   <div className="entry-meta">

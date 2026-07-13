@@ -23,34 +23,22 @@ body, input, textarea, select, button {
 .goal-target,
 .macro,
 .exercise-stats,
-.weight-stat-value,
-.summary-value,
-.record-weight,
-.meal-calories,
-.weight-progress-percent,
-.weight-cell,
 .date-label {
   font-family: var(--font-mono) !important;
   letter-spacing: -0.01em;
 }
 
 /* Replace bright gradient progress bars with subtle accent */
-.progress-fill,
-.progress-fill.workout,
-.progress-fill.calories,
 .goal-progress-fill,
 .goal-progress-fill.calories,
-.goal-progress-fill.protein,
-.weight-progress-fill {
+.goal-progress-fill.protein {
   background: var(--accent-primary) !important;
 }
 
 /* Section titles → all-caps mono labels */
 .section-title,
 .summary-title,
-.list-title,
-.details-title,
-.detail-section-title {
+.list-title {
   font-family: var(--font-mono) !important;
   font-size: 11px !important;
   font-weight: 700 !important;
@@ -60,46 +48,19 @@ body, input, textarea, select, button {
   margin: 16px 0 10px !important;
 }
 
-.details-title {
-  font-size: 14px !important;
-  color: var(--text-primary) !important;
-  letter-spacing: 0 !important;
-  text-transform: none !important;
-  font-family: var(--font-sans) !important;
-  font-weight: 700 !important;
-}
-
 /* Cards: dark surface, subtle border, gentle shadow.
-   NOTE: do NOT include list wrappers like .meals-list / .exercises-list /
-   .weighin-history here — the items inside them are the cards. */
+   NOTE: do NOT include list wrappers like .meals-list / .exercises-list
+   here — the items inside them are the cards. */
 .stat-card,
-.weight-progress-card,
-.activity-section,
-.records-section,
-.record-card,
-.calendar-container,
-.day-details,
-.comments-section,
-.comment-card,
-.detail-section,
 .daily-summary,
 .nutrition-form,
 .meal-card,
 .workout-form,
-.exercise-form,
 .exercise-card,
-.workout-summary,
 .weighin-form,
-.weighin-card,
-.weight-chart-container,
-.weight-progress-container,
-.weight-stats,
 .analytics-section,
-.analytics-card,
 .chart-container,
-.settings-section,
-.settings-form,
-.setting-group {
+.settings-section {
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border-color) !important;
   border-radius: 14px !important;
@@ -108,8 +69,7 @@ body, input, textarea, select, button {
 
 /* List-wrapper section spacing */
 .meals-list,
-.exercises-list,
-.weighin-history {
+.exercises-list {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -120,8 +80,7 @@ body, input, textarea, select, button {
 
 /* Section title above its list, then a small gap, then the grid below */
 .meals-list .list-title,
-.exercises-list .list-title,
-.weighin-history .section-title {
+.exercises-list .list-title {
   display: block;
   margin: 0 0 12px !important;
   padding: 0 2px;
@@ -132,20 +91,11 @@ body, input, textarea, select, button {
 .meal-card:nth-child(even)   { transform: rotate(0.3deg);  }
 .exercise-card:nth-child(odd){ transform: rotate(-0.3deg); }
 .exercise-card:nth-child(even){ transform: rotate(0.3deg); }
-.weighin-card:nth-child(odd) { transform: rotate(-0.25deg); }
-.weighin-card:nth-child(even){ transform: rotate(0.25deg);  }
-.record-card:nth-child(odd)  { transform: rotate(-0.25deg); }
-.record-card:nth-child(even) { transform: rotate(0.25deg);  }
 
 /* Accent buttons: warm coral, black ink */
 .add-btn,
 .save-btn,
-.save-edit-btn,
-.confirm-btn,
-.submit-btn,
-.add-weight-btn,
-button.primary,
-.comment-submit-btn {
+.save-edit-btn {
   background: var(--accent-primary) !important;
   color: var(--accent-ink) !important;
   border: none !important;
@@ -158,8 +108,7 @@ button.primary,
   letter-spacing: 0 !important;
   text-transform: none !important;
 }
-.add-btn:hover, .save-btn:hover, .save-edit-btn:hover,
-.add-weight-btn:hover, .comment-submit-btn:hover { background: var(--accent-hover) !important; }
+.add-btn:hover, .save-btn:hover, .save-edit-btn:hover { background: var(--accent-hover) !important; }
 
 /* Secondary / cancel buttons */
 .cancel-btn, .cancel-edit-btn, .today-btn {
@@ -191,49 +140,6 @@ button.primary,
   text-transform: uppercase;
 }
 
-/* Calendar: clean dark cells, accent for today */
-.calendar-day {
-  background: transparent !important;
-  border: none !important;
-  color: var(--text-primary) !important;
-  border-radius: 8px !important;
-}
-.calendar-day:hover { background: var(--bg-tertiary) !important; }
-.calendar-day.today { background: rgba(var(--accent-rgb), 0.15) !important; color: var(--accent-primary) !important; }
-.calendar-day.selected {
-  background: var(--accent-primary) !important;
-  color: var(--accent-ink) !important;
-}
-.calendar-day.has-workout .workout-indicator { background: var(--accent-primary) !important; }
-.calendar-day-name {
-  font-family: var(--font-mono) !important;
-  font-size: 9px !important;
-  text-transform: uppercase;
-  color: var(--text-muted) !important;
-  letter-spacing: 0.6px;
-}
-
-/* Activity chart bars */
-.chart-bar { background: var(--border-color) !important; border-radius: 3px !important; }
-.chart-bar.has-workout { background: var(--accent-primary) !important; }
-
-/* Toggle buttons → pill segment */
-.toggle-btn, .activity-toggle .toggle-btn {
-  background: transparent !important;
-  border: 1px solid var(--border-color) !important;
-  color: var(--text-primary) !important;
-  border-radius: 999px !important;
-  padding: 5px 12px !important;
-  font-family: var(--font-mono) !important;
-  font-size: 11px !important;
-  font-weight: 600;
-}
-.toggle-btn.active {
-  background: var(--accent-primary) !important;
-  border-color: var(--accent-primary) !important;
-  color: var(--accent-ink) !important;
-}
-
 /* Macro chip colors → uniform mono */
 .macro {
   font-family: var(--font-mono) !important;
@@ -245,8 +151,8 @@ button.primary,
 .macro.carbs    { color: var(--text-muted) !important; }
 .macro.fat      { color: var(--text-muted) !important; }
 
-/* Meal / exercise / weighin item cards */
-.meal-card, .exercise-card, .weighin-card, .record-card {
+/* Meal / exercise item cards */
+.meal-card, .exercise-card {
   background: var(--bg-secondary) !important;
 }
 .meal-name, .exercise-name, .weighin-date {
@@ -255,39 +161,21 @@ button.primary,
   color: var(--text-primary) !important;
 }
 
-/* Hero "today" numbers (Dashboard, WeighIns) */
-.weight-stat-value {
-  font-size: 32px !important;
-  font-weight: 700 !important;
-  color: var(--text-primary) !important;
-}
-.weight-stat-value.target,
-.weight-stat.target .weight-stat-value { color: var(--accent-primary) !important; }
-
 /* Delete / edit icon buttons */
-.delete-btn, .edit-btn, .comment-delete-btn {
+.delete-btn, .edit-btn {
   background: transparent !important;
   border: none !important;
   color: var(--text-muted) !important;
   font-size: 16px !important;
   cursor: pointer;
 }
-.delete-btn:hover, .comment-delete-btn:hover { color: var(--danger-color) !important; }
+.delete-btn:hover { color: var(--danger-color) !important; }
 .edit-btn:hover { color: var(--accent-primary) !important; }
 
-/* Stat-row tweaks */
-.stats-row {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 10px;
-}
-@media (min-width: 720px) {
-  .stats-row { grid-template-columns: repeat(4, 1fr) !important; }
-}
+/* Stat cards */
 .stat-card {
   padding: 14px !important;
 }
-.stat-icon { opacity: 0.6; }
 .stat-value {
   color: var(--text-primary) !important;
   font-size: 24px !important;
@@ -300,15 +188,6 @@ button.primary,
   letter-spacing: 0.8px !important;
   text-transform: uppercase !important;
 }
-.stat-goal {
-  font-family: var(--font-mono) !important;
-  color: var(--text-dimmed) !important;
-  font-size: 14px !important;
-  margin-left: 4px;
-}
-
-/* Comments – hidden for personal-use app */
-.comments-section { display: none !important; }
 
 /* Suggestions dropdown */
 .suggestions-dropdown {
@@ -330,8 +209,7 @@ button.primary,
 
 /* Form labels */
 .form-group label,
-.edit-form-group label,
-.setting-group label {
+.edit-form-group label {
   font-family: var(--font-mono) !important;
   font-size: 10px !important;
   font-weight: 700 !important;
@@ -340,8 +218,8 @@ button.primary,
   color: var(--text-muted) !important;
 }
 
-/* PWA update banner */
-.offline-indicator, .install-banner, .update-banner {
+/* Offline indicator */
+.offline-indicator {
   background: var(--bg-secondary) !important;
   border: 1px solid var(--border-color) !important;
   color: var(--text-primary) !important;

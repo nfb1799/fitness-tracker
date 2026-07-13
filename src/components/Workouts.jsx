@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import './Workouts.css'
 import Icon from './Icon'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { getWorkouts, addWorkout, deleteWorkout, updateWorkout, updateWorkoutsOrder } from '../firebase/firestoreService'
+import { getLocalDateString, formatTimeDisplay } from '../lib/date'
 
 const MEASUREMENT_TYPES = [
   { value: 'resistance', label: 'Weight', unit: 'lbs', placeholder: '135' },
@@ -12,30 +14,9 @@ const MEASUREMENT_TYPES = [
   { value: 'bodyweight', label: 'Bodyweight', unit: '', placeholder: '' },
 ]
 
-// Helper to format time from total seconds
-const formatTimeDisplay = (totalSeconds) => {
-  if (!totalSeconds && totalSeconds !== 0) return ''
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  
-  const parts = []
-  if (hours > 0) parts.push(`${hours}h`)
-  if (minutes > 0) parts.push(`${minutes}m`)
-  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`)
-  return parts.join(' ')
-}
-
-// Helper to get local date string (YYYY-MM-DD format)
-const getLocalDateString = (date = new Date()) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
 function Workouts() {
   const { currentUser } = useAuth()
+  const showToast = useToast()
   const [exercises, setExercises] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(getLocalDateString())
@@ -243,6 +224,7 @@ function Workouts() {
       }
     } catch (error) {
       console.error('Error adding workout:', error)
+      showToast('Could not save exercise. Try again.', 'error')
     }
   }
 
@@ -252,6 +234,7 @@ function Workouts() {
       setExercises(exercises.filter(exercise => exercise.id !== id))
     } catch (error) {
       console.error('Error deleting workout:', error)
+      showToast('Could not delete exercise.', 'error')
     }
   }
 
@@ -372,6 +355,7 @@ function Workouts() {
       cancelEditing()
     } catch (error) {
       console.error('Error updating workout:', error)
+      showToast('Could not update exercise.', 'error')
     }
   }
 
@@ -438,6 +422,7 @@ function Workouts() {
       console.error('Error updating order:', error)
       // Revert on error
       setExercises(exercises)
+      showToast('Could not save new order. Reverted.', 'error')
     }
 
     setDraggedExercise(null)
@@ -525,6 +510,7 @@ function Workouts() {
       setCopyFromDate('')
     } catch (error) {
       console.error('Error copying workout:', error)
+      showToast('Could not copy workout.', 'error')
     }
   }
 
@@ -555,7 +541,7 @@ function Workouts() {
     if (dateInputRef.current) {
       try {
         dateInputRef.current.showPicker()
-      } catch (e) {
+      } catch {
         // Fallback for browsers that don't support showPicker
         dateInputRef.current.focus()
         dateInputRef.current.click()
@@ -588,7 +574,7 @@ function Workouts() {
             ‹
           </button>
           <div className="date-display">
-            <span className="date-label" onClick={handleDateLabelClick}>{formatDisplayDate(selectedDate)}</span>
+            <span className="date-label" role="button" tabIndex={0} onClick={handleDateLabelClick} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDateLabelClick() } }}>{formatDisplayDate(selectedDate)}</span>
             <input
               ref={dateInputRef}
               type="date"
@@ -720,9 +706,9 @@ function Workouts() {
             />
             {showSuggestions && getFilteredSuggestions().length > 0 && (
               <div className="suggestions-dropdown">
-                {getFilteredSuggestions().map((savedEx, index) => (
+                {getFilteredSuggestions().map((savedEx) => (
                   <button
-                    key={index}
+                    key={savedEx.name}
                     type="button"
                     className="suggestion-item"
                     onMouseDown={(e) => {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './Settings.css'
 import Icon from './Icon'
 import { useAuth } from '../contexts/AuthContext'
-import { getUserSettings, updateUserSettings, exportUserData, importUserData, getWorkouts, getNutrition } from '../firebase/firestoreService'
+import { getUserSettings, updateUserSettings, exportUserData, importUserData } from '../firebase/firestoreService'
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 
@@ -15,11 +15,10 @@ function Settings() {
     calorieGoal: 2000,
     proteinGoal: 150,
     workoutDaysGoal: 4,
-    weightUnit: 'lbs',
     heightUnit: 'in',
     targetWeight: '',
     trackMacros: false,
-    theme: localStorage.getItem('theme') || 'light'
+    theme: localStorage.getItem('theme') || 'dark'
   })
 
   const [saveMessage, setSaveMessage] = useState('')
@@ -31,7 +30,7 @@ function Settings() {
           const userSettings = await getUserSettings(currentUser.uid)
           if (userSettings) {
             // Preserve the current theme from localStorage instead of overwriting
-            const currentTheme = localStorage.getItem('theme') || 'light'
+            const currentTheme = localStorage.getItem('theme') || 'dark'
             setSettings(prev => ({ ...prev, ...userSettings, theme: currentTheme }))
           }
         } catch (error) {
@@ -126,7 +125,6 @@ function Settings() {
           proteinGoal: 150,
           workoutDaysGoal: 4,
           trackMacros: false,
-          weightUnit: 'lbs',
           heightUnit: 'in',
           theme: 'dark'
         }
@@ -294,11 +292,11 @@ function Settings() {
               <input
                 type="number"
                 id="targetWeight"
-                placeholder={settings.weightUnit === 'lbs' ? '165' : '75'}
+                placeholder="165"
                 value={settings.targetWeight}
                 onChange={(e) => handleChange('targetWeight', e.target.value)}
               />
-              <span className="unit-label">{settings.weightUnit}</span>
+              <span className="unit-label">lbs</span>
             </div>
           </div>
           <div className="setting-item">

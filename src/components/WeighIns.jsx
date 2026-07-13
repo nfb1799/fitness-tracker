@@ -1,31 +1,24 @@
 import { useState, useEffect } from 'react'
 import './WeighIns.css'
 import { useAuth } from '../contexts/AuthContext'
-import { getWeighIns, addWeighIn, deleteWeighIn, getUserSettings, updateUserSettings } from '../firebase/firestoreService'
+import { useToast } from '../contexts/ToastContext'
+import { getWeighIns, addWeighIn, deleteWeighIn } from '../firebase/firestoreService'
 
 function WeighIns() {
   const { currentUser } = useAuth()
+  const showToast = useToast()
   const [weighIns, setWeighIns] = useState([])
   const [loading, setLoading] = useState(true)
   const [weight, setWeight] = useState('')
   const [note, setNote] = useState('')
   const [weighInDate, setWeighInDate] = useState(new Date().toISOString().split('T')[0])
-  const [weightUnit, setWeightUnit] = useState('lbs')
-  const [targetWeight, setTargetWeight] = useState(null)
 
   useEffect(() => {
     const loadData = async () => {
       if (!currentUser) return
       try {
-        const [data, settings] = await Promise.all([
-          getWeighIns(currentUser.uid),
-          getUserSettings(currentUser.uid),
-        ])
+        const data = await getWeighIns(currentUser.uid)
         setWeighIns(data)
-        if (settings) {
-          setWeightUnit(settings.weightUnit || 'lbs')
-          setTargetWeight(settings.targetWeight ? parseFloat(settings.targetWeight) : null)
-        }
       } catch (err) {
         console.error('Error loading weigh-ins:', err)
       }
@@ -40,7 +33,7 @@ function WeighIns() {
     const selectedDate = new Date(weighInDate + 'T12:00:00')
     const entry = {
       weight: parseFloat(weight),
-      unit: weightUnit,
+      unit: 'lbs',
       note: note.trim(),
       date: weighInDate,
       localTimestamp: selectedDate.toLocaleString(),
@@ -55,6 +48,7 @@ function WeighIns() {
       setWeighInDate(new Date().toISOString().split('T')[0])
     } catch (err) {
       console.error('Error adding weigh-in:', err)
+      showToast('Could not save weigh-in. Try again.', 'error')
     }
   }
 
@@ -64,6 +58,7 @@ function WeighIns() {
       setWeighIns(weighIns.filter(w => w.id !== id))
     } catch (err) {
       console.error('Error deleting weigh-in:', err)
+      showToast('Could not delete weigh-in.', 'error')
     }
   }
 
@@ -73,7 +68,20 @@ function WeighIns() {
   const latest = sorted[0]
   const prev = sorted[1]
   const delta = latest && prev ? +(latest.weight - prev.weight).toFixed(1) : null
-  const startWeight = sorted.length ? sorted[sorted.length - 1].weight : null
+
+  // Label for the hero card — reflects the latest entry's actual date rather
+  // than always claiming "today".
+  const heroLabel = (() => {
+    if (!latest) return ''
+    const today = new Date().toISOString().split('T')[0]
+    const y = new Date(); y.setDate(y.getDate() - 1)
+    const yesterday = y.toISOString().split('T')[0]
+    if (latest.date === today) return 'TODAY'
+    if (latest.date === yesterday) return 'YESTERDAY'
+    return new Date(latest.date + 'T12:00')
+      .toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      .toUpperCase()
+  })()
 
   // 30-day delta
   const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -106,9 +114,9 @@ function WeighIns() {
       {/* Hero number card */}
       {latest && (
         <div className="hy-card accent weigh-hero">
-          <span className="hy-sub-label" style={{ color: 'var(--accent-primary)' }}>TODAY</span>
+          <span className="hy-sub-label" style={{ color: 'var(--accent-primary)' }}>{heroLabel}</span>
           <div className="weigh-number hy-numeric">{latest.weight}</div>
-          <div className="weigh-unit mono">{latest.unit || weightUnit} {delta !== null && (
+          <div className="weigh-unit mono">{latest.unit || 'lbs'} {delta !== null && (
             <span style={{ color: delta < 0 ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
               · {delta > 0 ? '+' : ''}{delta}
             </span>
@@ -130,7 +138,7 @@ function WeighIns() {
             <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700 }}>Last 30 days</span>
             {monthDelta !== null && (
               <span className="hy-numeric" style={{ fontSize: 13, color: monthDelta < 0 ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
-                {monthDelta < 0 ? '↓' : '↑'} {Math.abs(monthDelta)} {weightUnit}
+                {monthDelta < 0 ? '↓' : '↑'} {Math.abs(monthDelta)} lbs
               </span>
             )}
           </div>
@@ -162,11 +170,11 @@ function WeighIns() {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="weight">Weight ({weightUnit})</label>
+            <label htmlFor="weight">Weight (lbs)</label>
             <input
               type="number"
               id="weight"
-              placeholder={weightUnit === 'lbs' ? '175' : '80'}
+              placeholder="175"
               step="0.1"
               min="0"
               value={weight}

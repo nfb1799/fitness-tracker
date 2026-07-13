@@ -7,7 +7,6 @@ import WeighIns from './components/WeighIns'
 import Settings from './components/Settings'
 import Analytics from './components/Analytics'
 import Goals from './components/Goals'
-import Activities from './components/Activities'
 import Auth from './components/Auth'
 import OfflineIndicator from './components/OfflineIndicator'
 import { useAuth } from './contexts/AuthContext'
@@ -43,7 +42,6 @@ function App() {
       case 'weighins':  return <WeighIns />
       case 'analytics': return <Analytics />
       case 'goals':     return <Goals />
-      case 'activities':return <Activities />
       case 'settings':  return <Settings />
       default: return <Dashboard />
     }
@@ -69,7 +67,7 @@ function App() {
   // 'data' tab covers analytics + weigh-ins.
   const activeTab =
     currentPage === 'dashboard' ? 'home' :
-    (currentPage === 'workouts' || currentPage === 'nutrition' || currentPage === 'activities') ? 'log' :
+    (currentPage === 'workouts' || currentPage === 'nutrition') ? 'log' :
     (currentPage === 'analytics' || currentPage === 'weighins') ? 'data' :
     currentPage === 'goals' ? 'goals' :
     null
@@ -116,7 +114,6 @@ function App() {
             {currentPage === 'weighins' && 'Weight'}
             {currentPage === 'analytics' && 'Trends'}
             {currentPage === 'goals' && 'Goals'}
-            {currentPage === 'activities' && 'Run / Ride'}
             {currentPage === 'settings' && 'Settings'}
           </h1>
         </div>
@@ -187,20 +184,6 @@ function App() {
               <div className="log-sheet-text">
                 <span className="log-sheet-title">Workout</span>
                 <span className="log-sheet-sub">SETS · REPS · TIME</span>
-              </div>
-              <span className="log-sheet-chev">›</span>
-            </button>
-            <button className="log-sheet-item" onClick={() => goTo('activities')}>
-              <span className="log-sheet-icon">
-                <svg width="20" height="20" viewBox="0 0 20 20">
-                  <path d="M3 14 Q 6 5, 10 10 T 17 6" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="3" cy="14" r="1.4" fill="currentColor"/>
-                  <circle cx="17" cy="6" r="1.4" fill="currentColor"/>
-                </svg>
-              </span>
-              <div className="log-sheet-text">
-                <span className="log-sheet-title">Run / Ride</span>
-                <span className="log-sheet-sub">GPS · MAP · ROUTE</span>
               </div>
               <span className="log-sheet-chev">›</span>
             </button>
